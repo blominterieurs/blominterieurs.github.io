@@ -280,6 +280,11 @@ input[aria-invalid="true"]{border-color:var(--fout);box-shadow:inset 0 0 0 1px v
 .inlogkaart #nieuwVelden[hidden]{display:none}
 input[type=password]{width:100%;border:1px solid var(--field-line);background:var(--field);padding:7px 9px;font-size:13px;line-height:18px;border-radius:0}
 .gebruiker{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.kosten{margin:0;display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:18px;background:var(--soft);padding:10px 12px}
+.kosten b{font-weight:500}
+.kosten .eur{flex-shrink:0;font-weight:500;font-variant-numeric:tabular-nums;padding:1px 8px;box-shadow:inset 0 0 0 1px var(--field-line);background:var(--panel)}
+.kosten small{display:block;font-size:11.5px;line-height:16px;color:var(--muted);margin-top:2px}
+.chip small.prijs{text-transform:none;letter-spacing:0;font-size:11px;opacity:.85}
 .privacy{margin:0;font-size:12px;line-height:17px;color:var(--muted);background:var(--soft);padding:10px 12px}
 .spreker .voorstel{grid-column:2 / 3;font-size:11px;line-height:14px;color:var(--muted);margin-top:-4px}
 </style>
@@ -362,11 +367,13 @@ input[type=password]{width:100%;border:1px solid var(--field-line);background:va
       </div>
 
       <div class="status" id="status1" role="status" aria-live="polite"></div>
+      <p class="kosten" id="kosten1" hidden></p>
       <div class="wvoet"><span></span><button class="knop" type="button" id="verwerk">Verwerken</button></div>
     </section>
 
     <section class="wstap" data-stap="2" hidden>
       <div class="wkop"><h2>Soort gesprek</h2><p class="hint">Claude herkent het soort gesprek zelf. Kies een ander soort en het verslag rechts wordt opnieuw opgebouwd, met de opbouw die daarbij past.</p></div>
+      <p class="kosten" id="kosten2" hidden></p>
       <fieldset class="soorten" id="soorten">
         <legend class="sr">Soort gesprek</legend>
       </fieldset>
@@ -1089,7 +1096,7 @@ function toonInlog(sessie){
   $("nieuwVelden").hidden = !(sessie && wachtwoordWijzigen);
   $("inlogKnop").textContent = sessie && wachtwoordWijzigen ? "Wachtwoord opslaan" : "Inloggen";
   $("inlogUitleg").textContent = sessie && wachtwoordWijzigen ? "Kies bij je eerste keer inloggen een eigen wachtwoord van minimaal 8 tekens." : "Log in met je Blom-account. Ben je al ingelogd op de Blom startpagina, dan gaat dit vanzelf.";
-  if (binnen) zetStatus("status1", "");
+  if (binnen){ zetStatus("status1", ""); if (!prijsGeladen) haalPrijs(); }
 }
 $("inlogForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -1120,6 +1127,76 @@ $("uitlog").addEventListener("click", async () => {
   $("nieuw").click();
   await supa.auth.signOut();
 });
+
+/* ---------- kosten (alleen als de tool zelfstandig draait met een eigen API-sleutel) ----------
+   Geen vaste prijzen: de serverfunctie haalt de actuele prijs per token bij Anthropic op en de dollarkoers bij de ECB.
+   Vooraf is het een schatting op basis van de lengte van de tekst; na elke opbouw volgen de werkelijke kosten. */
+let prijs = null, prijsGeladen = false, laatsteUitvoer = 0, totaalEur = 0, aantalOpbouwen = 0, laatsteKosten = null;
+function kostenAan(){ return !binnenClaude() && !!CONFIG.aiEndpoint; }
+function fmtEur(n){
+  if (n == null || !isFinite(n)) return "onbekend";
+  if (n > 0 && n < 0.01) return "minder dan € 0,01";
+  return "€ " + n.toLocaleString("nl-NL", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+async function haalPrijs(){
+  if (!kostenAan() || !supa) return;
+  try {
+    const { data } = await supa.auth.getSession();
+    if (!data.session) return;
+    const res = await fetch(CONFIG.aiEndpoint, { method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer " + data.session.access_token, apikey:CONFIG.publishableKey }, body: JSON.stringify({ actie:"prijs" }) });
+    if (res.ok){ const j = await res.json(); prijs = j && j.prijs ? j.prijs : null; }
+  } catch(e){ prijs = null; }
+  prijsGeladen = true;
+  toonKosten1();
+}
+function schatting(soort){
+  if (!prijs) return null;
+  const {sam, agenda} = invoer();
+  if (!sam) return null;
+  const tekst = prompt(sam.slice(0, 48000), agenda, !!shot, soort || "");
+  const inTokens = Math.ceil(tekst.length / 3.3) + (shot ? 1600 : 0);
+  const uitTokens = laatsteUitvoer || Math.min(9000, Math.max(2500, Math.round(sam.length / 3.3 * 0.35) + 2500));
+  return (inTokens * prijs.invoerUsdPerMiljoen + uitTokens * prijs.uitvoerUsdPerMiljoen) / 1e6 * prijs.koersUsdEur;
+}
+function bronTekst(){
+  if (!prijs) return "";
+  return `Berekend met de actuele prijs van ${prijs.naam} bij Anthropic en de dollarkoers van de ECB${prijs.koersDatum ? " van " + new Date(prijs.koersDatum).toLocaleDateString("nl-NL", {day:"numeric", month:"long"}) : ""}.`;
+}
+function zetKosten(id, eurTekst, hoofd, klein){
+  const el = $(id); el.textContent = "";
+  el.append(h("span", {class:"eur", text:eurTekst}), h("span", null, hoofd, klein ? h("small", {text:klein}) : null));
+  el.hidden = false;
+}
+function toonKosten1(){
+  if (!kostenAan()){ $("kosten1").hidden = true; $("verwerk").textContent = "Verwerken"; return; }
+  const s = schatting("");
+  if (!$("txtSam").value.trim()){ $("kosten1").hidden = true; $("verwerk").textContent = "Verwerken"; return; }
+  if (s == null){
+    $("verwerk").textContent = "Verwerken";
+    if (prijsGeladen) zetKosten("kosten1", "?", "De actuele prijs is nu niet op te halen. Je ziet de werkelijke kosten zodra het verslag klaar is, als de prijs dan wel beschikbaar is.");
+    else $("kosten1").hidden = true;
+    return;
+  }
+  $("verwerk").textContent = "Verwerken · ca. " + fmtEur(s);
+  zetKosten("kosten1", "ca. " + fmtEur(s), "Zodra je op Verwerken klikt, kost dat ongeveer dit bedrag. Kies je daarna een ander soort gesprek, dan kost elke nieuwe opbouw opnieuw ongeveer zoveel.", bronTekst());
+}
+function toonKosten2(){
+  if (!kostenAan()){ $("kosten2").hidden = true; return; }
+  const s = schatting("Werkoverleg");
+  const totaal = aantalOpbouwen ? ` Tot nu toe voor dit verslag: ${fmtEur(totaalEur)} (${aantalOpbouwen} ${aantalOpbouwen === 1 ? "opbouw" : "opbouwen"}).` : "";
+  zetKosten("kosten2", s == null ? "?" : "ca. " + fmtEur(s),
+    "Een ander soort gesprek kiezen bouwt het verslag opnieuw op en kost elke keer ongeveer dit bedrag. Soorten met “gratis” zijn al opgebouwd en wisselen zonder kosten." + totaal,
+    s == null ? "De actuele prijs is nu niet op te halen." : bronTekst());
+}
+function verwerkKosten(k){
+  if (!k) return "";
+  laatsteKosten = k;
+  if (k.prijs) prijs = k.prijs;
+  if (k.uitvoer) laatsteUitvoer = k.uitvoer;
+  if (k.eur != null){ totaalEur += k.eur; aantalOpbouwen++; }
+  return k.eur != null ? ` Deze opbouw kostte ${fmtEur(k.eur)}${k.geschat ? " (geschat, want de opbouw werd onderbroken)" : ""}.` : " De kosten van deze opbouw konden niet worden berekend.";
+}
+["txtSam","txtAg"].forEach(id => $(id).addEventListener("input", () => toonKosten1()));
 
 /* ---------- wizard ---------- */
 let stap = 1, heeftVerslag = false;
@@ -1182,7 +1259,7 @@ function voortgang(id, toestand, info){
 koppelInvoer("dropSam", "kiesSam", "fileSam", "naamSam", "txtSam");
 koppelInvoer("dropAg", "kiesAg", "fileAg", "naamAg", "txtAg");
 let shot = null;
-function zetShot(f){ shot = f || null; $("naamShot").textContent = shot ? shot.name : ".png of .jpg"; }
+function zetShot(f){ shot = f || null; $("naamShot").textContent = shot ? shot.name : ".png of .jpg"; toonKosten1(); }
 $("kiesShot").addEventListener("click", () => $("fileShot").click());
 $("fileShot").addEventListener("change", () => zetShot($("fileShot").files[0]));
 $("dropShot").addEventListener("dragover", (e) => { e.preventDefault(); $("dropShot").classList.add("over"); });
@@ -1204,7 +1281,8 @@ function tekenSoorten(){
     inp.addEventListener("change", () => kiesSoort(waarde));
     const lab = h("span", null, tekst,
       waarde === "" && herkend ? h("small", {text:herkend}) : null,
-      waarde && uitkomsten[waarde] && waarde !== gekozen ? h("small", {text:"direct"}) : null);
+      kostenAan() && waarde !== gekozen ? (uitkomsten[waarde] ? h("small", {class:"prijs", text:"gratis"}) : (prijs && schatting(waarde) != null ? h("small", {class:"prijs", text:"ca. " + fmtEur(schatting(waarde))}) : null))
+        : (waarde && uitkomsten[waarde] && waarde !== gekozen ? h("small", {text:"direct"}) : null));
     fs.append(h("label", {class:"chip", for:inp.id}, inp, lab));
   }
 }
@@ -1216,8 +1294,8 @@ async function verwerk(){
   if (!sam){ zetStatus("status1", "Voeg eerst de Fireflies samenvatting toe: kies een bestand of plak de tekst.", true); return; }
   if (!kanVerwerken()){ zetStatus("status1", "Verwerken kan in deze weergave niet. Open de tool in Claude.", true); return; }
   zetStatus("status1", "");
-  uitkomsten = {}; gekozen = ""; herkend = ""; laatsteVolledig = null; heeftVerslag = false; bewerkStart = null;
-  toonStap(2); tekenSoorten();
+  uitkomsten = {}; gekozen = ""; herkend = ""; laatsteVolledig = null; heeftVerslag = false; bewerkStart = null; totaalEur = 0; aantalOpbouwen = 0;
+  toonStap(2); tekenSoorten(); toonKosten2();
   await interpreteer("");
 }
 function pasToe(nieuw){
@@ -1286,8 +1364,8 @@ async function interpreteer(soort){
     pasToe(uitkomsten[soort]);
     voortgang("v1", "klaar"); voortgang("v2", "klaar", ""); voortgang("v3", "klaar");
     $("v2titel").textContent = soort ? "Opgebouwd als " + soort.toLowerCase() : "Claude heeft het soort gesprek herkend";
-    zetStatus("status2", "Het verslag is klaar. Kies eventueel een ander soort gesprek, of ga verder.", false, true);
-    $("naSoort").disabled = false; toonStap(2); return;
+    zetStatus("status2", "Het verslag is klaar. Dit soort was al opgebouwd, dus wisselen kostte niets.", false, true);
+    $("naSoort").disabled = false; toonStap(2); toonKosten2(); return;
   }
   const {sam, agenda} = invoer();
   const mijn = new AbortController(); ctl = mijn; bezig = true;
@@ -1301,6 +1379,7 @@ async function interpreteer(soort){
   voortgang("v2", "bezig", soort ? "Claude kiest de opbouw die past bij een " + soort.toLowerCase() + "." : "Claude leest de samenvatting en bepaalt wat voor gesprek het was.");
 
   const deel = {meta:null, uitgelicht:null, kernpunten:[], secties:[], sprekers:[]};
+  let kostenRegel = null;
   let toonGepland = false;
   const opbouw = () => normalize({meta:deel.meta || {}, uitgelicht:deel.uitgelicht, kernpunten:deel.kernpunten, secties:deel.secties, sprekers:deel.sprekers});
   const toon = () => {
@@ -1316,6 +1395,7 @@ async function interpreteer(soort){
     else if (o.type === "uitgelicht"){ deel.uitgelicht = o; laagSub("De samenvatting staat erin. Nu de onderdelen."); }
     else if (o.type === "kernpunten"){ deel.kernpunten = Array.isArray(o.items) ? o.items : []; voortgang("v2", "bezig", "Kernpunten staan erin."); laagSub("De kernpunten staan erin. Nu de onderdelen."); }
     else if (o.type === "sectie"){ deel.secties.push(o); const tx = deel.secties.length === 1 ? "1 onderdeel staat erin." : deel.secties.length + " onderdelen staan erin."; voortgang("v2", "bezig", tx); laagSub(tx + " Er kunnen er nog meer volgen."); }
+    else if (o.type === "kosten"){ kostenRegel = o; return; }
     else if (o.type === "sprekers"){ deel.sprekers = Array.isArray(o.items) ? o.items : []; $("v2titel").textContent = "Acties en sprekers verzamelen"; laagSub("Bijna klaar: acties en sprekers worden verzameld."); }
     else return;
     toon();
@@ -1336,7 +1416,8 @@ async function interpreteer(soort){
     pasToe(nieuw);
     stopBouw(true);
     voortgang("v3", "klaar");
-    zetStatus("status2", "Het verslag is klaar. Kies eventueel een ander soort gesprek, of ga verder.", false, true);
+    zetStatus("status2", "Het verslag is klaar." + (kostenAan() ? verwerkKosten(kostenRegel) : " Kies eventueel een ander soort gesprek, of ga verder."), false, true);
+    toonKosten2();
     $("v2titel").textContent = soort ? "Opgebouwd als " + soort.toLowerCase() : (herkend ? "Herkend als " + herkend.toLowerCase() : "Claude heeft de samenvatting gelezen");
     $("naSoort").disabled = false;
     toonStap(2); tekenSoorten();
@@ -1347,7 +1428,8 @@ async function interpreteer(soort){
     voortgang("v2", "fout", "");
     $("opnieuw").hidden = false;
     if (e && e.code === "cancelled") zetStatus("status2", "Gestopt. Kies een soort gesprek of probeer het opnieuw.");
-    else zetStatus("status2", FOUT[e && e.code] || "Er ging iets mis. Probeer het opnieuw.", true);
+    else zetStatus("status2", (FOUT[e && e.code] || "Er ging iets mis. Probeer het opnieuw.") + (kostenAan() && kostenRegel && kostenRegel.eur ? " Deze mislukte poging kostte " + fmtEur(kostenRegel.eur) + "." : ""), true);
+    if (kostenAan() && kostenRegel && kostenRegel.eur){ totaalEur += kostenRegel.eur; aantalOpbouwen++; toonKosten2(); }
     $("naSoort").disabled = !heeftVerslag;
   } finally {
     if (ctl === mijn){ ctl = null; bezig = false; $("stop").hidden = true; }
@@ -1524,7 +1606,7 @@ $("herstel").addEventListener("click", () => {
 $("nieuw").addEventListener("click", () => {
   if (ctl) ctl.abort();
   stopBouw();
-  $("txtSam").value = ""; $("txtAg").value = ""; uitkomsten = {}; gekozen = ""; herkend = ""; laatsteVolledig = null; $("fileSam").value = ""; $("fileAg").value = ""; $("fileShot").value = "";
+  $("txtSam").value = ""; $("txtAg").value = ""; uitkomsten = {}; gekozen = ""; herkend = ""; laatsteVolledig = null; totaalEur = 0; aantalOpbouwen = 0; toonKosten1(); $("fileSam").value = ""; $("fileAg").value = ""; $("fileShot").value = "";
   $("naamSam").textContent = ".txt, .md, .docx of .pdf"; $("naamAg").textContent = ".txt, .md, .docx of .pdf"; zetShot(null);
   zetStatus("dlStatus", ""); shotGelezen = false;
   state = normalize(VOORBEELD); isVoorbeeld = true; heeftVerslag = false;
