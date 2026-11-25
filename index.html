@@ -48,13 +48,17 @@ footer{font-size:12px;color:var(--g400)}
 /* gebruikersbeheer */
 .gb{border-top:1px solid var(--ink);padding-top:24px}
 .gb-uitleg{margin:0;font-size:13px;color:var(--g400);max-width:78ch}
-.gb-rij{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(180px,.9fr) minmax(0,1.4fr) 32px;gap:8px 16px;align-items:center;padding:10px 0;border-bottom:1px solid var(--n500)}
-@media (max-width:820px){.gb-rij{grid-template-columns:minmax(0,1fr) 32px}.gb-rij select,.gb-apps{grid-column:1}.gb-del{grid-column:2;grid-row:1}}
+.gb-rij{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr) 32px;gap:8px 20px;align-items:start;padding:12px 0;border-bottom:1px solid var(--n500)}
+@media (max-width:820px){.gb-rij{grid-template-columns:minmax(0,1fr) 32px}.gb-apps{grid-column:1}.gb-del{grid-column:2;grid-row:1}}
 .gb-wie{display:grid;min-width:0}.gb-wie b{font-weight:500}.gb-wie small{font-size:11.5px;color:var(--g400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gb-wie .gb-let{color:#8A4B0F}
 .gb select,.gb input[type=email],.gb input[type=text]{height:38px;border:1px solid var(--ink);border-radius:0;padding:0 8px;font:inherit;font-size:13.5px;color:inherit;background:#fff;min-width:0;width:100%}
 .gb select:disabled{border-color:var(--n500);color:var(--g400)}
-.gb-apps{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px}
+.gb-apps{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 16px;font-size:13px;align-items:center}
+.gb-app{display:flex;flex-wrap:wrap;gap:2px 10px}
+.gb-rol{grid-column:1/-1;display:flex!important;align-items:center;gap:8px}.gb-rol select{width:auto;height:32px;font-size:13px}
+.gb-beh{display:inline-flex;align-items:center;gap:6px;font-size:12px;margin-top:4px;cursor:pointer}.gb-beh input{margin:0;accent-color:#3A3A3A}
+.gb-applijst{margin:0;padding-left:18px;font-size:12.5px;color:var(--g400)}.gb-applijst b{color:var(--ink);font-weight:500}.gb-applijst code{font-size:11.5px}
 .gb-apps label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}.gb-apps input{margin:0;accent-color:#3A3A3A}
 .gb-apps .gb-lees{color:var(--g400)}
 .gb-del{width:32px;height:32px;border:1px solid var(--n500);background:#fff;font-size:18px;line-height:1;color:var(--fout);cursor:pointer;padding:0}
@@ -91,7 +95,7 @@ span.gb-del{border:0;cursor:default}
     </section>
     <section class="groep gb" id="gbGroep" hidden>
       <span class="eye">Gebruikersbeheer</span>
-      <p class="gb-uitleg">Wat je hier wijzigt, staat direct in de database en geldt meteen in alle Blom-apps. Per persoon kies je de rol in de Collectiekeuze en welke andere apps zichtbaar zijn, eventueel met alleen lezen. Een nieuw account krijgt het standaardwachtwoord, tenzij je zelf een wachtwoord invult; bij de eerste keer inloggen moet de persoon een eigen wachtwoord kiezen. Er wordt nooit een mail verstuurd.</p>
+      <p class="gb-uitleg">Wat je hier wijzigt, staat direct in de database en geldt meteen in alle Blom-apps. Per persoon stel je per app in of die zichtbaar is, eventueel met alleen lezen; bij de Collectiekeuze kies je de rol. Een nieuw account krijgt het standaardwachtwoord, tenzij je zelf een wachtwoord invult; bij de eerste keer inloggen moet de persoon een eigen wachtwoord kiezen. Er wordt nooit een mail verstuurd.</p>
       <p class="gb-meld" id="gbMeld" role="status"></p>
       <div id="gbLijst"><p class="leeg">Laden…</p></div>
       <form id="gbForm" class="gb-form" autocomplete="off" novalidate hidden>
@@ -99,9 +103,18 @@ span.gb-del{border:0;cursor:default}
         <input id="gbEmail" type="email" placeholder="naam@blominterieurs.nl" aria-label="E-mailadres" required>
         <input id="gbNaam" type="text" placeholder="Naam" aria-label="Naam">
         <input id="gbWw" type="text" placeholder="Wachtwoord (leeg = standaardwachtwoord)" aria-label="Wachtwoord" autocomplete="off" spellcheck="false">
-        <select id="gbRol" aria-label="Rol"></select>
         <div class="gb-apps" id="gbNieuwApps"></div>
         <button type="submit" id="gbKnop">Toevoegen</button>
+      </form>
+      <form id="gbAppForm" class="gb-form" autocomplete="off" novalidate hidden>
+        <b>Apps</b>
+        <ul class="gb-applijst" id="gbAppLijst"></ul>
+        <p class="gb-uitleg">Een nieuwe app toevoegen: vul de code in (de naam van de repo), de naam, een korte omschrijving en het webadres. De app krijgt een tegel op de startpagina voor wie hem mag zien en een vinkje per persoon hierboven. De app zelf controleert de toegang met de databasefunctie <code>mag_app</code>.</p>
+        <input id="gbAppCode" type="text" placeholder="Code, bijvoorbeeld naam-van-de-repo" aria-label="Code">
+        <input id="gbAppNaam" type="text" placeholder="Naam" aria-label="Naam">
+        <input id="gbAppTekst" type="text" placeholder="Korte omschrijving voor de tegel" aria-label="Omschrijving">
+        <input id="gbAppUrl" type="text" placeholder="https://blominterieurs.github.io/naam-van-de-repo/" aria-label="Webadres">
+        <button type="submit">App opslaan</button>
       </form>
     </section>
     <footer>Je bent met één account ingelogd in alle Blom-apps. Uitloggen hier logt je overal uit.</footer>
@@ -120,12 +133,7 @@ span.gb-del{border:0;cursor:default}
     domein: '@blominterieurs.nl'
   };
   const BASIS = 'https://blominterieurs.github.io';
-  const APPS = [
-    { naam: 'Collectiekeuze', tekst: 'Collectie bekijken en je keuzes per leverancier maken.', url: BASIS + '/collectiekeuze/', alleen: 'collectie' },
-    { naam: 'Doelgroepoverzicht', tekst: 'Enquête per label en segment, met posters per label.', url: BASIS + '/doelgroepoverzicht/' },
-    { naam: 'Verslagmaker', tekst: 'Fireflies samenvatting omzetten naar een Blom verslag, als PDF of Word.', url: BASIS + '/verslagmaker/' },
-    { naam: 'Kerstkaarten 2026', tekst: 'Wie krijgt een kerstkaart, met of zonder geschenk, en van wie komt die.', url: BASIS + '/kerstkaarten-2026/', app: 'kerstkaarten-2026' }
-  ];
+  // De tegels van de apps komen uit de database (gebruikersbeheer.apps), per persoon wat die mag zien.
   const BEHEER = [
     { naam: 'Collectiekeuze test', tekst: 'Testomgeving: tussenversies, keuzes tellen niet mee voor live.', url: BASIS + '/collectiekeuze/test/', test: true },
     { naam: 'GitHub', tekst: 'Code van alle apps in de organisatie blominterieurs.', url: 'https://github.com/blominterieurs' }
@@ -256,16 +264,17 @@ span.gb-del{border:0;cursor:default}
     if (error) return null;
     return data;
   }
-  async function haalApps() {
-    // apps met zichtbaarheid per persoon (schema gebruikersbeheer); beheerders zien alles
-    const { data, error } = await sb.rpc('mijn_apps');
+  async function haalTegels() {
+    // apps die deze persoon mag zien (schema gebruikersbeheer); beheerders zien alles
+    const { data, error } = await sb.rpc('mijn_tegels');
     return error || !Array.isArray(data) ? [] : data;
   }
   /* ---------- gebruikersbeheer ----------
      Voor beheerders en voor wie de app Gebruikersbeheer zichtbaar heeft. Alles gaat rechtstreeks naar Supabase
-     (schema gebruikersbeheer): accounts, de rol in de Collectiekeuze, zichtbaarheid per app en alleen lezen.
+     (schema gebruikersbeheer): accounts, toegang per app, de rol binnen een app en alleen lezen.
+     Welke apps er zijn, staat in de tabel gebruikersbeheer.apps; een nieuwe app verschijnt hier vanzelf.
      De database controleert zelf wat iemand mag; dit scherm toont alleen wat kan. */
-  const ROLN = { beheerder: 'Beheerder (alles)', beoordelaar: 'Collectiekeuze: beoordelaar', beoordelaar_zonder_prijzen: 'Collectiekeuze: beoordelaar zonder prijzen', geen: 'Geen Collectiekeuze' };
+  const CK_ROL = { geen: 'Geen toegang', beoordelaar: 'Beoordelaar', beoordelaar_zonder_prijzen: 'Beoordelaar zonder prijzen' };
   async function functie(naam, body) {
     const { data, error } = await sb.functions.invoke(naam, { body: body || {} });
     if (!error) return { data, error: null };
@@ -275,10 +284,11 @@ span.gb-del{border:0;cursor:default}
   }
   const gbMeld = (t, fout) => { const e = $('gbMeld'); e.textContent = t || ''; e.classList.toggle('fout', !!fout); };
   const gbFout = e => { const m = (e && (e.message || e.details)) || 'onbekende fout'; return /not_granted|permission/i.test(m) ? 'Je hebt geen rechten om dit te wijzigen.' : m; };
+  const ckOpties = huidig => Object.entries(CK_ROL).map(([k, l]) => `<option value="${k}"${huidig === k ? ' selected' : ''}>${l}</option>`).join('');
   async function laadGebruikers() {
     const box = $('gbLijst');
     const [lijst, zicht, ww] = await Promise.all([sb.rpc('gebruikers_lijst'), sb.rpc('zichtbaarheid_lijst'), sb.rpc('wachtwoord_stand_lijst')]);
-    if (lijst.error) { box.innerHTML = '<p class="leeg fout">' + esc(gbFout(lijst.error)) + '</p>'; $('gbForm').hidden = true; return; }
+    if (lijst.error) { box.innerHTML = '<p class="leeg fout">' + esc(gbFout(lijst.error)) + '</p>'; $('gbForm').hidden = true; $('gbAppForm').hidden = true; return; }
     const Z = zicht.data || {}, apps = Z.apps || [], zb = Z.zichtbaar || {}, al = Z.alleen_lezen || {}, W = ww.data || {};
     const ikBeh = !!Z.ik_beheerder, magBew = Z.ik_bewerken !== false;
     const ik = (window.BLOM_USER && window.BLOM_USER.email || '').toLowerCase();
@@ -287,21 +297,30 @@ span.gb-del{border:0;cursor:default}
       return `<div class="gb-rij">
         <div class="gb-wie"><b>${esc(g.naam || g.email.split('@')[0])}${g.email === ik ? ' <small>(jij)</small>' : ''}</b>
           <small>${esc(g.email)} · ${g.laatst_ingelogd ? 'laatst ingelogd ' + new Date(g.laatst_ingelogd).toLocaleDateString('nl-NL') : 'nog niet ingelogd'}</small>
-          ${stand && stand !== 'eigen wachtwoord' ? `<small class="gb-let">${esc(stand)}</small>` : ''}</div>
-        <select data-rol="${esc(g.email)}" aria-label="Rol van ${esc(g.email)}"${vast ? ' disabled' : ''}>${Object.entries(ROLN).filter(([k]) => k !== 'beheerder' || ikBeh || beh).map(([k, l]) => `<option value="${k}"${g.rol === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
+          ${stand && stand !== 'eigen wachtwoord' ? `<small class="gb-let">${esc(stand)}</small>` : ''}
+          <label class="gb-beh" title="Een beheerder ziet en beheert alle apps"><input type="checkbox" data-beh="${esc(g.email)}"${beh ? ' checked' : ''}${ikBeh && magBew ? '' : ' disabled'}> Beheerder (alles)</label></div>
         <div class="gb-apps">${apps.map(a => {
+          if (a.met_rol) return `<label class="gb-rol">${esc(a.naam)} <select data-rol="${esc(g.email)}" aria-label="${esc(a.naam)}: rol van ${esc(g.email)}"${vast || beh ? ' disabled' : ''}>${beh ? '<option>Beheerder</option>' : ckOpties(g.rol)}</select></label>`;
           const aan = beh || (zb[g.email] || []).includes(a.code), slot = vast || beh || (a.code === 'gebruikersbeheer' && !ikBeh);
-          return `<label${beh ? ' title="Beheerders zien alle apps"' : ''}><input type="checkbox" data-app="${esc(g.email)}|${esc(a.code)}"${aan ? ' checked' : ''}${slot ? ' disabled' : ''}> ${esc(a.naam)}</label>`
-            + (!beh && aan ? `<label class="gb-lees" title="Mag ${esc(a.naam)} bekijken maar niets aanpassen"><input type="checkbox" data-lees="${esc(g.email)}|${esc(a.code)}"${(al[g.email] || []).includes(a.code) ? ' checked' : ''}${slot ? ' disabled' : ''}> alleen lezen</label>` : '');
+          return `<span class="gb-app"><label><input type="checkbox" data-app="${esc(g.email)}|${esc(a.code)}"${aan ? ' checked' : ''}${slot ? ' disabled' : ''}> ${esc(a.naam)}</label>`
+            + (!beh && aan ? `<label class="gb-lees" title="Mag ${esc(a.naam)} bekijken maar niets aanpassen"><input type="checkbox" data-lees="${esc(g.email)}|${esc(a.code)}"${(al[g.email] || []).includes(a.code) ? ' checked' : ''}${slot ? ' disabled' : ''}> alleen lezen</label>` : '') + '</span>';
         }).join('')}</div>
         ${g.email === ik || !ikBeh ? '<span class="gb-del"></span>' : `<button type="button" class="gb-del" data-del="${esc(g.email)}" aria-label="${esc(g.email)} verwijderen" title="Verwijderen">×</button>`}
       </div>`;
     }).join('') || '<p class="leeg">Nog geen gebruikers.</p>';
 
-    box.querySelectorAll('[data-rol]').forEach(sel => sel.onchange = async () => {
+    const zetRol = async (g, rol, tekst) => {
+      const { error } = await sb.rpc('gebruiker_zet', { p_email: g.email, p_naam: g.naam || '', p_rol: rol });
+      gbMeld(error ? gbFout(error) : g.email + ': ' + tekst, !!error); laadGebruikers();
+    };
+    box.querySelectorAll('[data-rol]').forEach(sel => sel.onchange = () => {
       const g = lijst.data.find(x => x.email === sel.dataset.rol);
-      const { error } = await sb.rpc('gebruiker_zet', { p_email: g.email, p_naam: g.naam || '', p_rol: sel.value });
-      gbMeld(error ? gbFout(error) : g.email + ' is nu: ' + ROLN[sel.value] + '.', !!error); laadGebruikers();
+      zetRol(g, sel.value, 'Collectiekeuze is nu ' + CK_ROL[sel.value].toLowerCase() + '.');
+    });
+    box.querySelectorAll('[data-beh]').forEach(cb => cb.onchange = () => {
+      const g = lijst.data.find(x => x.email === cb.dataset.beh);
+      if (cb.checked && !confirm(g.email + ' beheerder maken?\n\nEen beheerder ziet en beheert alle apps, ook de resultaten in de Collectiekeuze, en kan andere beheerders aanwijzen.')) { cb.checked = false; return; }
+      zetRol(g, cb.checked ? 'beheerder' : 'geen', cb.checked ? 'is nu beheerder.' : 'is geen beheerder meer. Stel de toegang per app opnieuw in.');
     });
     box.querySelectorAll('[data-app]').forEach(cb => cb.onchange = async () => {
       const [em, app] = cb.dataset.app.split('|'), a = apps.find(x => x.code === app); cb.disabled = true;
@@ -324,8 +343,12 @@ span.gb-del{border:0;cursor:default}
 
     // formulier voor een nieuw account
     $('gbForm').hidden = !magBew;
-    $('gbRol').innerHTML = Object.entries(ROLN).filter(([k]) => k !== 'beheerder' || ikBeh).map(([k, l]) => `<option value="${k}"${k === 'geen' ? ' selected' : ''}>${l}</option>`).join('');
-    $('gbNieuwApps').innerHTML = apps.filter(a => a.code !== 'gebruikersbeheer' || ikBeh).map(a => `<label><input type="checkbox" name="gbApp" value="${esc(a.code)}"> ${esc(a.naam)}</label>`).join('');
+    $('gbNieuwApps').innerHTML = apps.filter(a => a.code !== 'gebruikersbeheer' || ikBeh).map(a => a.met_rol
+      ? `<label class="gb-rol">${esc(a.naam)} <select id="gbRol" aria-label="${esc(a.naam)}: rol">${ckOpties('geen')}</select></label>`
+      : `<span class="gb-app"><label><input type="checkbox" name="gbApp" value="${esc(a.code)}"> ${esc(a.naam)}</label></span>`).join('');
+    // apps beheren (alleen beheerders)
+    $('gbAppForm').hidden = !ikBeh;
+    $('gbAppLijst').innerHTML = apps.map(a => `<li><b>${esc(a.naam)}</b> <code>${esc(a.code)}</code>${a.url ? ' · ' + esc(a.url) : ' · geen tegel'}</li>`).join('');
   }
   function toonGebruikers() {
     $('gbGroep').hidden = false; gbMeld(''); laadGebruikers();
@@ -333,7 +356,7 @@ span.gb-del{border:0;cursor:default}
   }
   $('gbForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const em = $('gbEmail').value.trim().toLowerCase(), nm = $('gbNaam').value.trim(), ww = $('gbWw').value, rol = $('gbRol').value;
+    const em = $('gbEmail').value.trim().toLowerCase(), nm = $('gbNaam').value.trim(), ww = $('gbWw').value, rol = ($('gbRol') || {}).value || 'geen';
     const kies = [...document.querySelectorAll('input[name="gbApp"]:checked')].map(c => c.value);
     if (!/^[^@\s]+@blominterieurs\.nl$/.test(em)) { gbMeld('Gebruik een ' + CFG.domein + '-adres.', true); return; }
     if (ww && ww.length < 8) { gbMeld('Het wachtwoord moet minimaal 8 tekens hebben.', true); return; }
@@ -349,22 +372,32 @@ span.gb-del{border:0;cursor:default}
       + (mis.length ? ' Let op: niet gelukt voor ' + mis.join(', ') + '.' : ''), mis.length > 0);
     $('gbEmail').value = ''; $('gbNaam').value = ''; $('gbWw').value = ''; laadGebruikers();
   });
+  $('gbAppForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const code = $('gbAppCode').value.trim().toLowerCase(), naam = $('gbAppNaam').value.trim();
+    if (!/^[a-z0-9-]{2,60}$/.test(code)) { gbMeld('De code mag alleen kleine letters, cijfers en koppeltekens bevatten, bijvoorbeeld de naam van de repo.', true); return; }
+    if (!naam) { gbMeld('Vul een naam in voor de app.', true); return; }
+    const { error } = await sb.rpc('app_zet', { p_code: code, p_naam: naam, p_tekst: $('gbAppTekst').value, p_url: $('gbAppUrl').value, p_volgorde: 100 });
+    gbMeld(error ? gbFout(error) : naam + ' staat nu in het gebruikersbeheer. Zet per persoon het vinkje aan; beheerders zien de app meteen.', !!error);
+    if (!error) { ['gbAppCode', 'gbAppNaam', 'gbAppTekst', 'gbAppUrl'].forEach(id => $(id).value = ''); laadGebruikers(); }
+  });
 
   async function ga(user) {
     if (gestart) return;
     gestart = true;
     window.BLOM_USER = user;
     const rol = await haalRol();
-    const mijnApps = await haalApps();
+    const tegels = await haalTegels();
     const account = await sb.rpc('mijn_account').then(r => (r && !r.error && r.data) || null, () => null);
     const naam = (account && account.naam) || (rol && rol.naam) || user.email.split('@')[0].split(/[._-]/)[0];
     $('groet').textContent = 'Welkom, ' + naam.charAt(0).toUpperCase() + naam.slice(1);
     $('wieTekst').textContent = 'Ingelogd als ' + user.email;
     const apps = $('apps'); apps.innerHTML = '';
-    APPS.filter(a => (a.alleen !== 'collectie' || rol) && (!a.app || mijnApps.includes(a.app))).forEach(a => apps.appendChild(tegel(a)));
+    tegels.forEach(a => apps.appendChild(tegel({ naam: a.naam, tekst: a.tekst || '', url: a.url })));
+    if (!tegels.length) apps.innerHTML = '<p class="leeg">Er zijn nog geen apps voor je zichtbaar gezet. Vraag een beheerder om toegang.</p>';
     const beheer = $('beheer'); beheer.innerHTML = '';
     const isBeheerder = rol && rol.rol === 'beheerder';
-    const magGb = mijnApps.includes('gebruikersbeheer');
+    const magGb = await sb.rpc('mag_app', { p_app: 'gebruikersbeheer' }).then(r => r && r.data === true, () => false);
     if (magGb) {
       const t = tegel({ naam: 'Gebruikersbeheer', tekst: 'Accounts, toegang per app en wachtwoorden.', url: '#gebruikers' });
       t.onclick = e => { e.preventDefault(); toonGebruikers(); };
