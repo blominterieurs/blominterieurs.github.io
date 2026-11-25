@@ -58,6 +58,10 @@ footer{font-size:12px;color:var(--g400)}
 .gb-app{display:flex;flex-wrap:wrap;gap:2px 10px}
 .gb-rol{grid-column:1/-1;display:flex!important;align-items:center;gap:8px}.gb-rol select{width:auto;height:32px;font-size:13px}
 .gb-beh{display:inline-flex;align-items:center;gap:6px;font-size:12px;margin-top:4px;cursor:pointer}.gb-beh input{margin:0;accent-color:#3A3A3A}
+.gb-std{display:inline-flex;align-items:center;gap:5px;margin-left:6px;color:var(--ink);cursor:pointer}.gb-std input{margin:0;accent-color:#3A3A3A}
+.gb-log summary{cursor:pointer;font-weight:500;padding:6px 0}
+.gb-log table{border-collapse:collapse;width:100%;font-size:12.5px}.gb-log th{text-align:left;font-weight:500;border-bottom:1px solid var(--ink);padding:4px 8px 4px 0}
+.gb-log td{vertical-align:top;padding:4px 8px 4px 0;border-bottom:1px solid var(--n500);overflow-wrap:anywhere}.gb-log #gbLogLijst{max-height:420px;overflow:auto}
 .gb-applijst{margin:0;padding-left:18px;font-size:12.5px;color:var(--g400)}.gb-applijst b{color:var(--ink);font-weight:500}.gb-applijst code{font-size:11.5px}
 .gb-apps label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}.gb-apps input{margin:0;accent-color:#3A3A3A}
 .gb-apps .gb-lees{color:var(--g400)}
@@ -95,7 +99,7 @@ span.gb-del{border:0;cursor:default}
     </section>
     <section class="groep gb" id="gbGroep" hidden>
       <span class="eye">Gebruikersbeheer</span>
-      <p class="gb-uitleg">Wat je hier wijzigt, staat direct in de database en geldt meteen in alle Blom-apps. Per persoon stel je per app in of die zichtbaar is, eventueel met alleen lezen; bij de Collectiekeuze kies je de rol. Een nieuw account krijgt het standaardwachtwoord, tenzij je zelf een wachtwoord invult; bij de eerste keer inloggen moet de persoon een eigen wachtwoord kiezen. Er wordt nooit een mail verstuurd.</p>
+      <p class="gb-uitleg">Wat je hier wijzigt, staat direct in de database en geldt meteen in alle Blom-apps. Per persoon stel je per app in of die zichtbaar is, eventueel met alleen lezen; bij de Collectiekeuze kies je de rol. Elke wijziging komt in het logboek onderaan. Een nieuw account krijgt het standaardwachtwoord, tenzij je zelf een wachtwoord invult; bij de eerste keer inloggen moet de persoon een eigen wachtwoord kiezen. Er wordt nooit een mail verstuurd.</p>
       <p class="gb-meld" id="gbMeld" role="status"></p>
       <div id="gbLijst"><p class="leeg">Laden…</p></div>
       <form id="gbForm" class="gb-form" autocomplete="off" novalidate hidden>
@@ -106,6 +110,10 @@ span.gb-del{border:0;cursor:default}
         <div class="gb-apps" id="gbNieuwApps"></div>
         <button type="submit" id="gbKnop">Toevoegen</button>
       </form>
+      <details class="gb-log" id="gbLog">
+        <summary>Logboek: wie heeft wanneer welke toegang gewijzigd</summary>
+        <div id="gbLogLijst"><p class="leeg">Laden…</p></div>
+      </details>
       <form id="gbAppForm" class="gb-form" autocomplete="off" novalidate hidden>
         <b>Apps</b>
         <ul class="gb-applijst" id="gbAppLijst"></ul>
@@ -348,8 +356,25 @@ span.gb-del{border:0;cursor:default}
       : `<span class="gb-app"><label><input type="checkbox" name="gbApp" value="${esc(a.code)}"> ${esc(a.naam)}</label></span>`).join('');
     // apps beheren (alleen beheerders)
     $('gbAppForm').hidden = !ikBeh;
-    $('gbAppLijst').innerHTML = apps.map(a => `<li><b>${esc(a.naam)}</b> <code>${esc(a.code)}</code>${a.url ? ' · ' + esc(a.url) : ' · geen tegel'}</li>`).join('');
+    $('gbAppLijst').innerHTML = apps.map(a => `<li><b>${esc(a.naam)}</b> <code>${esc(a.code)}</code>${a.url ? ' · ' + esc(a.url) : ' · geen tegel'}`
+      + (a.met_rol || a.code === 'gebruikersbeheer' ? '' : ` <label class="gb-std"><input type="checkbox" data-std="${esc(a.code)}"${a.standaard_aan ? ' checked' : ''}> standaard aan voor iedereen</label>`) + '</li>').join('');
+    $('gbAppLijst').querySelectorAll('[data-std]').forEach(cb => cb.onchange = async () => {
+      const a = apps.find(x => x.code === cb.dataset.std);
+      if (cb.checked && !confirm(a.naam + ' standaard aanzetten?\n\nIedereen die nog geen instelling voor deze app heeft, krijgt hem nu te zien, en elk nieuw account ook. Wie de app bewust uit heeft staan, houdt dat.')) { cb.checked = false; return; }
+      const { error } = await sb.rpc('app_standaard_zet', { p_code: a.code, p_aan: cb.checked });
+      gbMeld(error ? gbFout(error) : a.naam + ' staat ' + (cb.checked ? 'nu standaard aan voor iedereen.' : 'niet meer standaard aan; wie hem al had, houdt hem.'), !!error); laadGebruikers();
+    });
+    if ($('gbLog').open) laadLog();
   }
+  // logboek: elke wijziging in toegang, door wie en wanneer (tabel gebruikersbeheer.toegang_log)
+  async function laadLog() {
+    const { data, error } = await sb.rpc('toegang_log_lijst', { p_aantal: 200 });
+    if (error) { $('gbLogLijst').innerHTML = '<p class="leeg fout">' + esc(gbFout(error)) + '</p>'; return; }
+    $('gbLogLijst').innerHTML = (data || []).length ? '<table><thead><tr><th>Wanneer</th><th>Door</th><th>Wie</th><th>App</th><th>Wijziging</th></tr></thead><tbody>'
+      + data.map(l => `<tr><td>${esc(new Date(l.op).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td><td>${esc(l.door || '')}</td><td>${esc(l.email || '')}</td><td>${esc(l.app || '')}</td><td>${esc(l.wijziging)}</td></tr>`).join('')
+      + '</tbody></table>' : '<p class="leeg">Nog geen wijzigingen.</p>';
+  }
+  $('gbLog').addEventListener('toggle', () => { if ($('gbLog').open) laadLog(); });
   function toonGebruikers() {
     $('gbGroep').hidden = false; gbMeld(''); laadGebruikers();
     $('gbGroep').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -406,6 +431,7 @@ span.gb-del{border:0;cursor:default}
     if (isBeheerder) BEHEER.forEach(a => beheer.appendChild(tegel(a)));
     $('beheerGroep').hidden = !isBeheerder && !magGb;
     if (magGb && location.hash === '#gebruikers') setTimeout(toonGebruikers, 0);
+    if (magGb) window.addEventListener('hashchange', () => { if (location.hash === '#gebruikers') toonGebruikers(); });
     scherm.hidden = true; $('app').hidden = false;
     const meta = user.user_metadata || {};
     if (meta.wachtwoord_wijzigen) setTimeout(() => toonWachtwoord(true, true), 0);
