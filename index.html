@@ -77,7 +77,7 @@ footer{font-size:12px;color:var(--g400)}
 <script>
 /* Blom startpagina: één keer inloggen met je Blom-account (Supabase, alleen @blominterieurs.nl).
    De apps staan op hetzelfde adres (blominterieurs.github.io/...) en delen daardoor de inlog: wie hier inlogt,
-   is in de Collectiekeuze en het Doelgroepoverzicht automatisch ingelogd. */
+   is in de Collectiekeuze, het Doelgroepoverzicht en de Kerstkaarten automatisch ingelogd. */
 (function () {
   const CFG = {
     url: 'https://vvvsvgtmslsjegbxppjf.supabase.co',
@@ -88,7 +88,8 @@ footer{font-size:12px;color:var(--g400)}
   const APPS = [
     { naam: 'Collectiekeuze', tekst: 'Collectie bekijken en je keuzes per leverancier maken.', url: BASIS + '/collectiekeuze/', alleen: 'collectie' },
     { naam: 'Doelgroepoverzicht', tekst: 'Enquête per label en segment, met posters per label.', url: BASIS + '/doelgroepoverzicht/' },
-    { naam: 'Verslagmaker', tekst: 'Fireflies samenvatting omzetten naar een Blom verslag, als PDF of Word.', url: BASIS + '/verslagmaker/' }
+    { naam: 'Verslagmaker', tekst: 'Fireflies samenvatting omzetten naar een Blom verslag, als PDF of Word.', url: BASIS + '/verslagmaker/' },
+    { naam: 'Kerstkaarten 2026', tekst: 'Wie krijgt een kerstkaart, met of zonder geschenk, en van wie komt die.', url: BASIS + '/kerstkaarten-2026/', alleen: 'collectie' }
   ];
   const BEHEER = [
     { naam: 'Collectiekeuze test', tekst: 'Testomgeving: tussenversies, keuzes tellen niet mee voor live.', url: BASIS + '/collectiekeuze/test/', test: true },
