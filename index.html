@@ -112,6 +112,42 @@ main.gb-open>:not(#gbGroep){display:none}
 .gb-dialoog::backdrop{background:rgba(58,58,58,.45)}
 .gb-dialoog form{display:grid;gap:14px;padding:24px}
 .gb-acties{display:flex;justify-content:flex-end;gap:10px}
+
+/* overzicht: huidige rechten als labels */
+.gb-chips{display:flex;flex-wrap:wrap;gap:6px}
+.gb-chip{display:inline-block;font-size:12px;line-height:1.3;padding:4px 9px;background:var(--ink);color:#fff;border:1px solid var(--ink);white-space:nowrap}
+.gb-chip.gb-half{background:#fff;color:var(--ink)}
+.gb-chip.gb-vol{letter-spacing:.02em}
+.gb-status span{display:block;font-size:12px;color:var(--g400);white-space:nowrap}
+.gb-status .gb-let{color:#8A4B0F;font-weight:500}
+.gb-knop.gb-klein{height:34px;font-size:13px;padding:0 14px}
+.gb-tabel .gb-eind{width:1%;white-space:nowrap}
+
+/* apart scherm: rechten van één persoon */
+.gb-rechten{display:grid;gap:22px;max-width:820px}
+.gb-rechten .eye{display:block;margin-top:14px}
+.gb-rechten h2{font-size:28px;margin:4px 0 4px}
+.gb h3{font-family:var(--display);font-weight:500;font-size:16px;margin:0 0 6px}
+.gb-blok{display:grid;gap:8px;padding:16px 18px;background:var(--grijs)}
+.gb-applijst{display:grid;border-top:1px solid var(--ink);margin-top:10px}
+.gb-applijst.gb-uit{opacity:.4;pointer-events:none}
+fieldset.gb-app{border:0;border-bottom:1px solid var(--n500);margin:0;padding:14px 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 20px;align-items:center;min-width:0}
+fieldset.gb-app legend{float:left;padding:0;display:grid;gap:2px}
+fieldset.gb-app legend b{font-weight:500;font-size:15px}
+fieldset.gb-app legend small{font-size:12px;color:var(--g400)}
+fieldset.gb-app:disabled{opacity:.55}
+@media (max-width:700px){fieldset.gb-app{grid-template-columns:minmax(0,1fr)}}
+.gb-seg{display:flex;flex-wrap:wrap}
+.gb-seg label{cursor:pointer}
+.gb-seg input{position:absolute;opacity:0;pointer-events:none}
+.gb-seg span{display:block;padding:9px 14px;border:1px solid var(--ink);margin-left:-1px;font-size:13px;background:#fff;white-space:nowrap}
+.gb-seg label:first-child span{margin-left:0}
+.gb-seg input:checked+span{background:var(--ink);color:#fff}
+.gb-seg input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
+.gb-acties.gb-links{justify-content:flex-start;flex-wrap:wrap}
+.gb-knop.gb-rood{color:var(--fout);border-color:var(--fout)}
+
+.gb-kop[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -137,7 +173,7 @@ main.gb-open>:not(#gbGroep){display:none}
       <div class="tegels" id="beheer"></div>
     </section>
     <section class="gb" id="gbGroep" hidden>
-      <div class="gb-kop">
+      <div class="gb-kop" id="gbKop">
         <div>
           <button type="button" class="gb-terug" id="gbTerug">← Startpagina</button>
           <h1>Gebruikersbeheer</h1>
@@ -146,7 +182,7 @@ main.gb-open>:not(#gbGroep){display:none}
         <button type="button" class="gb-knop" id="gbNieuwKnop" hidden>Account toevoegen</button>
       </div>
       <p class="gb-meld" id="gbMeld" role="status" hidden></p>
-      <div class="gb-tabs" role="tablist" aria-label="Onderdelen van het gebruikersbeheer">
+      <div class="gb-tabs" id="gbTabs" role="tablist" aria-label="Onderdelen van het gebruikersbeheer">
         <button type="button" role="tab" id="gbTabGebruikers" aria-selected="true" aria-controls="gbPaneelGebruikers">Gebruikers</button>
         <button type="button" role="tab" id="gbTabApps" aria-selected="false" aria-controls="gbPaneelApps" hidden>Apps</button>
         <button type="button" role="tab" id="gbTabLog" aria-selected="false" aria-controls="gbPaneelLog">Logboek</button>
@@ -158,7 +194,37 @@ main.gb-open>:not(#gbGroep){display:none}
           <span class="gb-telling" id="gbTelling"></span>
         </div>
         <div class="gb-wrap" id="gbTabel"><p class="leeg">Laden…</p></div>
-        <p class="gb-noot">Aan = de persoon ziet de app. Alleen lezen = wel bekijken, niets aanpassen. Bij de Collectiekeuze kies je een rol. Een beheerder ziet en beheert alles.</p>
+        <p class="gb-noot">Je ziet hier per persoon welke apps die nu mag gebruiken. Een lichte rand betekent alleen lezen. Met "Rechten aanpassen" wijzig je de toegang van één persoon.</p>
+      </div>
+
+      <div id="gbPaneelRechten" hidden>
+        <form id="gbRechtenForm" class="gb-rechten" novalidate>
+          <div>
+            <button type="button" class="gb-terug" id="gbRechtenTerug">← Terug naar alle gebruikers</button>
+            <span class="eye">Rechten aanpassen</span>
+            <h2 id="gbRechtenNaam"></h2>
+            <p class="gb-uitleg" id="gbRechtenMail"></p>
+          </div>
+          <div class="gb-blok" id="gbBehBlok">
+            <label class="gb-vink"><input type="checkbox" id="gbBeh"><span><b>Beheerder</b></span></label>
+            <p class="gb-uitleg">Een beheerder ziet en beheert alle apps, ook de resultaten in de Collectiekeuze, en kan andere beheerders aanwijzen.</p>
+          </div>
+          <div>
+            <h3>Toegang per app</h3>
+            <p class="gb-uitleg" id="gbBehUitleg" hidden>Deze persoon is beheerder en heeft daardoor toegang tot alles. Zet Beheerder uit om de toegang per app in te stellen.</p>
+            <div class="gb-applijst" id="gbRechtenLijst"></div>
+          </div>
+          <div class="gb-acties gb-links"><button type="submit" class="gb-knop" id="gbOpslaan">Opslaan</button><button type="button" class="gb-knop gb-licht" id="gbRechtenAnnuleer">Annuleren</button></div>
+          <div class="gb-blok">
+            <h3>Account</h3>
+            <p class="gb-uitleg">Wachtwoord vergeten? Stuur een link waarmee de persoon zelf een nieuw wachtwoord kiest (er gaat een mail naar het eigen adres), of zet het wachtwoord terug naar het standaardwachtwoord (geen mail; je geeft het zelf door).</p>
+            <div class="gb-acties gb-links">
+              <button type="button" class="gb-knop gb-licht" id="gbWwLink">Link voor nieuw wachtwoord sturen</button>
+              <button type="button" class="gb-knop gb-licht" id="gbWwTerug">Wachtwoord terugzetten naar standaard</button>
+              <button type="button" class="gb-knop gb-licht gb-rood" id="gbVerwijder">Account verwijderen</button>
+            </div>
+          </div>
+        </form>
       </div>
 
       <div id="gbPaneelApps" role="tabpanel" aria-labelledby="gbTabApps" hidden>
@@ -352,9 +418,10 @@ main.gb-open>:not(#gbGroep){display:none}
   /* ---------- gebruikersbeheer ----------
      Voor beheerders en voor wie de app Gebruikersbeheer zichtbaar heeft. Alles gaat rechtstreeks naar Supabase
      (schema gebruikersbeheer): accounts, toegang per app, de rol binnen een app en alleen lezen.
-     Welke apps er zijn, staat in de tabel gebruikersbeheer.apps; een nieuwe app wordt hier vanzelf een kolom.
+     Welke apps er zijn, staat in de tabel gebruikersbeheer.apps; een nieuwe app verschijnt hier vanzelf.
+     Het tabblad Gebruikers toont de huidige rechten; aanpassen gebeurt per persoon in een apart scherm.
      De database controleert zelf wat iemand mag; dit scherm toont alleen wat kan. */
-  const CK_ROL = { geen: 'Geen toegang', beoordelaar: 'Beoordelaar', beoordelaar_zonder_prijzen: 'Zonder prijzen' };
+  const CK_ROL = { geen: 'Geen toegang', beoordelaar: 'Beoordelaar', beoordelaar_zonder_prijzen: 'Beoordelaar zonder prijzen' };
   async function functie(naam, body) {
     const { data, error } = await sb.functions.invoke(naam, { body: body || {} });
     if (!error) return { data, error: null };
@@ -370,7 +437,16 @@ main.gb-open>:not(#gbGroep){display:none}
   const gbFout = e => { const m = (e && (e.message || e.details)) || 'onbekende fout'; return /not_granted|permission/i.test(m) ? 'Je hebt geen rechten om dit te wijzigen.' : m; };
   const ckOpties = huidig => Object.entries(CK_ROL).map(([k, l]) => `<option value="${k}"${huidig === k ? ' selected' : ''}>${l}</option>`).join('');
   const dag = d => new Date(d).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
-  const GB = { lijst: [], apps: [], zb: {}, al: {}, ww: {}, ikBeh: false, magBew: false, log: [] };
+  const GB = { lijst: [], apps: [], zb: {}, al: {}, ww: {}, ikBeh: false, magBew: false, log: [], wie: null };
+  const ikzelf = () => (window.BLOM_USER && window.BLOM_USER.email || '').toLowerCase();
+  const persoon = email => GB.lijst.find(x => x.email === email) || { email, naam: '', rol: 'geen' };
+  const appNaam = code => { const a = GB.apps.find(x => x.code === code); return a ? a.naam : code; };
+  // het recht van een persoon op een app: 'geen', 'lezen' of 'bewerken' (bij een app met rol: de rol)
+  const rechtVan = (g, a) => a.met_rol ? (g.rol === 'beheerder' ? 'geen' : g.rol)
+    : !(GB.zb[g.email] || []).includes(a.code) ? 'geen' : (GB.al[g.email] || []).includes(a.code) ? 'lezen' : 'bewerken';
+  const keuzesVan = a => a.met_rol ? Object.entries(CK_ROL)
+    : a.code === 'gebruikersbeheer' ? [['geen', 'Geen toegang'], ['bewerken', 'Toegang']]
+    : [['geen', 'Geen toegang'], ['lezen', 'Alleen lezen'], ['bewerken', 'Lezen en bewerken']];
 
   async function laadGebruikers() {
     const [lijst, zicht, ww] = await Promise.all([sb.rpc('gebruikers_lijst'), sb.rpc('zichtbaarheid_lijst'), sb.rpc('wachtwoord_stand_lijst')]);
@@ -381,44 +457,131 @@ main.gb-open>:not(#gbGroep){display:none}
     $('gbTabApps').hidden = !GB.ikBeh;
     tekenGebruikers(); tekenApps();
     if (!$('gbPaneelLog').hidden) laadLog();
+    if (GB.wie && !$('gbPaneelRechten').hidden) tekenRechten();
   }
 
+  /* overzicht: alleen lezen, de huidige rechten per persoon */
   function tekenGebruikers() {
-    const { lijst, apps, zb, al, ww, ikBeh, magBew } = GB;
-    const ik = (window.BLOM_USER && window.BLOM_USER.email || '').toLowerCase();
-    const zoek = $('gbZoek').value.trim().toLowerCase();
+    const { lijst, apps, ww, ikBeh, magBew } = GB;
+    const ik = ikzelf(), zoek = $('gbZoek').value.trim().toLowerCase();
     const zichtbaar = lijst.filter(g => !zoek || (g.email + ' ' + (g.naam || '')).toLowerCase().includes(zoek));
     const moet = lijst.filter(g => ww[g.email] && ww[g.email].stand !== 'eigen wachtwoord').length;
     $('gbTelling').textContent = lijst.length + ' accounts' + (moet ? ' · ' + moet + ' met nog het ingestelde wachtwoord' : '') + (zoek ? ' · ' + zichtbaar.length + ' gevonden' : '');
     const rij = g => {
-      const beh = g.rol === 'beheerder', vast = !magBew || (beh && !ikBeh), stand = ww[g.email] ? ww[g.email].stand : '';
-      const cellen = beh
-        ? `<td class="gb-alles" colspan="${apps.length}">Ziet en beheert alle apps</td>`
-        : apps.map(a => {
-          if (a.met_rol) return `<td><select data-rol="${esc(g.email)}" aria-label="${esc(a.naam)}: rol van ${esc(g.email)}"${vast ? ' disabled' : ''}>${ckOpties(g.rol)}</select></td>`;
-          const aan = (zb[g.email] || []).includes(a.code), slot = vast || (a.code === 'gebruikersbeheer' && !ikBeh);
-          return `<td><label class="gb-vink"><input type="checkbox" data-app="${esc(g.email)}|${esc(a.code)}" aria-label="${esc(a.naam)} voor ${esc(g.email)}"${aan ? ' checked' : ''}${slot ? ' disabled' : ''}><span>${aan ? 'Aan' : 'Uit'}</span></label>`
-            + (aan && a.code !== 'gebruikersbeheer' ? `<label class="gb-lees" title="Mag ${esc(a.naam)} bekijken maar niets aanpassen"><input type="checkbox" data-lees="${esc(g.email)}|${esc(a.code)}"${(al[g.email] || []).includes(a.code) ? ' checked' : ''}${slot ? ' disabled' : ''}>alleen lezen</label>` : '') + '</td>';
-        }).join('');
+      const beh = g.rol === 'beheerder', stand = ww[g.email] ? ww[g.email].stand : '';
+      const rechten = beh ? '<span class="gb-chip gb-vol">Beheerder · alle apps</span>'
+        : apps.map(a => { const r = rechtVan(g, a); if (r === 'geen') return '';
+          return `<span class="gb-chip${r === 'lezen' ? ' gb-half' : ''}">${esc(a.naam)}${a.met_rol ? ' · ' + esc(CK_ROL[r].toLowerCase()) : r === 'lezen' ? ' · alleen lezen' : ''}</span>`; }).join('')
+          || '<span class="gb-grijs">Geen enkele app</span>';
+      const magAanpassen = magBew && (!beh || ikBeh);
       return `<tr>
-        <th scope="row"><b>${esc(g.naam || g.email.split('@')[0])}${g.email === ik ? ' <span class="gb-jij">jij</span>' : ''}</b>
-          <small>${esc(g.email)}</small>
-          <small>${g.laatst_ingelogd ? 'Laatst ingelogd ' + dag(g.laatst_ingelogd) : 'Nog niet ingelogd'}</small>
-          ${stand && stand !== 'eigen wachtwoord' ? `<small class="gb-let">${stand === 'nog geen account' ? 'Nog geen account' : 'Moet nog een eigen wachtwoord kiezen'}</small>` : ''}</th>
-        <td><label class="gb-vink"><input type="checkbox" data-beh="${esc(g.email)}" aria-label="Beheerder: ${esc(g.email)}"${beh ? ' checked' : ''}${ikBeh && magBew ? '' : ' disabled'}><span>${beh ? 'Ja' : 'Nee'}</span></label></td>
-        ${cellen}
-        <td class="gb-eind">${g.email === ik || !ikBeh ? '' : `<button type="button" class="gb-del" data-del="${esc(g.email)}" aria-label="${esc(g.email)} verwijderen" title="Account verwijderen">×</button>`}</td>
+        <th scope="row"><b>${esc(g.naam || g.email.split('@')[0])}${g.email === ik ? ' <span class="gb-jij">jij</span>' : ''}</b><small>${esc(g.email)}</small></th>
+        <td><div class="gb-chips">${rechten}</div></td>
+        <td class="gb-status"><span>${g.laatst_ingelogd ? 'Laatst ingelogd ' + dag(g.laatst_ingelogd) : 'Nog niet ingelogd'}</span>${stand && stand !== 'eigen wachtwoord' ? `<span class="gb-let">${stand === 'nog geen account' ? 'Nog geen account' : 'Moet nog een eigen wachtwoord kiezen'}</span>` : ''}</td>
+        <td class="gb-eind">${magAanpassen ? `<button type="button" class="gb-knop gb-licht gb-klein" data-bewerk="${esc(g.email)}">Rechten aanpassen</button>` : ''}</td>
       </tr>`;
     };
-    $('gbTabel').innerHTML = `<table class="gb-tabel"><thead><tr><th scope="col">Persoon</th><th scope="col">Beheerder</th>${apps.map(a => `<th scope="col">${esc(a.naam)}</th>`).join('')}<th></th></tr></thead>
-      <tbody>${zichtbaar.map(rij).join('') || `<tr><td colspan="${apps.length + 3}" class="leeg">Niemand gevonden.</td></tr>`}</tbody></table>`;
+    $('gbTabel').innerHTML = `<table class="gb-tabel"><thead><tr><th scope="col">Persoon</th><th scope="col">Huidige rechten</th><th scope="col">Account</th><th></th></tr></thead>
+      <tbody>${zichtbaar.map(rij).join('') || '<tr><td colspan="4" class="leeg">Niemand gevonden.</td></tr>'}</tbody></table>`;
   }
+  $('gbTabel').addEventListener('click', e => { const b = e.target.closest('[data-bewerk]'); if (b) openRechten(b.dataset.bewerk); });
+
+  /* apart scherm: de rechten van één persoon aanpassen, met Opslaan */
+  function openRechten(email) {
+    GB.wie = email; gbMeld('');
+    Object.values(TABS).forEach(id => { $(id).hidden = true; });
+    $('gbTabs').hidden = true; $('gbKop').hidden = true; $('gbPaneelRechten').hidden = false;
+    tekenRechten(); window.scrollTo(0, 0);
+  }
+  function sluitRechten() { GB.wie = null; $('gbPaneelRechten').hidden = true; $('gbTabs').hidden = false; $('gbKop').hidden = false; kiesTab('Gebruikers'); }
+  function tekenRechten() {
+    const g = persoon(GB.wie), beh = g.rol === 'beheerder', ik = ikzelf(), stand = GB.ww[g.email] ? GB.ww[g.email].stand : '';
+    $('gbRechtenNaam').textContent = g.naam || g.email.split('@')[0];
+    $('gbRechtenMail').textContent = g.email + ' · ' + (g.laatst_ingelogd ? 'laatst ingelogd ' + dag(g.laatst_ingelogd) : 'nog niet ingelogd') + (stand && stand !== 'eigen wachtwoord' ? ' · moet nog een eigen wachtwoord kiezen' : '');
+    $('gbBehBlok').hidden = !GB.ikBeh;
+    $('gbBeh').checked = beh; $('gbBeh').disabled = g.email === ik;
+    $('gbRechtenLijst').innerHTML = GB.apps.map(a => {
+      const huidig = rechtVan(g, a), slot = a.code === 'gebruikersbeheer' && !GB.ikBeh;
+      return `<fieldset class="gb-app"${slot ? ' disabled' : ''}>
+        <legend><b>${esc(a.naam)}</b>${a.tekst ? `<small>${esc(a.tekst)}</small>` : ''}${slot ? '<small>Alleen een beheerder kan dit wijzigen.</small>' : ''}</legend>
+        <div class="gb-seg">${keuzesVan(a).map(([k, l]) => `<label><input type="radio" name="r_${esc(a.code)}" value="${k}"${huidig === k ? ' checked' : ''}><span>${esc(l)}</span></label>`).join('')}</div>
+      </fieldset>`;
+    }).join('');
+    $('gbRechtenLijst').classList.toggle('gb-uit', beh);
+    $('gbBehUitleg').hidden = !beh;
+    $('gbVerwijder').hidden = !GB.ikBeh || g.email === ik;
+    $('gbWwTerug').hidden = g.email === ik; $('gbWwLink').hidden = stand === 'nog geen account';
+  }
+  $('gbBeh').addEventListener('change', () => { $('gbRechtenLijst').classList.toggle('gb-uit', $('gbBeh').checked); $('gbBehUitleg').hidden = !$('gbBeh').checked; });
+  $('gbRechtenTerug').onclick = sluitRechten; $('gbRechtenAnnuleer').onclick = sluitRechten;
+  $('gbRechtenForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const g = persoon(GB.wie), was = g.rol === 'beheerder', wordt = GB.ikBeh ? $('gbBeh').checked : was, knop = $('gbOpslaan');
+    const gekozen = code => { const r = document.querySelector(`input[name="r_${code}"]:checked`); return r ? r.value : 'geen'; };
+    if (wordt && !was && !confirm((g.naam || g.email) + ' beheerder maken?\n\nEen beheerder ziet en beheert alle apps, ook de resultaten in de Collectiekeuze, en kan andere beheerders aanwijzen.')) return;
+    knop.disabled = true;
+    const fouten = [], gedaan = [];
+    const doe = async (fn, args, tekst) => { const { error } = await sb.rpc(fn, args); if (error) fouten.push(gbFout(error)); else gedaan.push(tekst); };
+    if (wordt) {
+      if (!was) await doe('gebruiker_zet', { p_email: g.email, p_naam: g.naam || '', p_rol: 'beheerder' }, 'beheerder');
+    } else {
+      for (const a of GB.apps) {
+        const nu = was ? 'onbekend' : rechtVan(g, a), nieuw = gekozen(a.code);
+        if (a.met_rol) {
+          if (nu !== nieuw) await doe('gebruiker_zet', { p_email: g.email, p_naam: g.naam || '', p_rol: nieuw }, a.naam + ': ' + CK_ROL[nieuw].toLowerCase());
+          continue;
+        }
+        if (a.code === 'gebruikersbeheer' && !GB.ikBeh) continue;
+        if (nu === nieuw) continue;
+        if (nieuw === 'geen') { if (nu !== 'geen') await doe('zichtbaarheid_zet', { p_email: g.email, p_app: a.code, p_zichtbaar: false }, a.naam + ': geen toegang'); continue; }
+        if (nu === 'geen' || nu === 'onbekend') await doe('zichtbaarheid_zet', { p_email: g.email, p_app: a.code, p_zichtbaar: true }, a.naam + ': toegang');
+        if (a.code !== 'gebruikersbeheer') await doe('zichtbaarheid_bewerken_zet', { p_email: g.email, p_app: a.code, p_bewerken: nieuw === 'bewerken' }, a.naam + ': ' + (nieuw === 'lezen' ? 'alleen lezen' : 'lezen en bewerken'));
+      }
+    }
+    knop.disabled = false;
+    await laadGebruikers();
+    if (fouten.length) { gbMeld('Niet alles is opgeslagen: ' + [...new Set(fouten)].join(' '), true); return; }
+    sluitRechten();
+    gbMeld(gedaan.length ? 'Opgeslagen voor ' + (g.naam || g.email) + '.' : 'Er was niets gewijzigd.');
+  });
+  // wachtwoord terugzetten en account verwijderen
+  $('gbWwTerug').onclick = async () => {
+    const g = persoon(GB.wie);
+    if (!confirm('Het wachtwoord van ' + (g.naam || g.email) + ' terugzetten naar het standaardwachtwoord?\n\nHet huidige wachtwoord werkt daarna niet meer. Bij de eerstvolgende keer inloggen moet de persoon een eigen wachtwoord kiezen. Er wordt geen mail verstuurd.')) return;
+    $('gbWwTerug').disabled = true;
+    const { error } = await functie('account-aanmaken', { email: g.email, naam: g.naam || '', rol: g.rol });
+    $('gbWwTerug').disabled = false;
+    gbMeld(error ? gbFout(error) : (g.naam || g.email) + ' heeft weer het standaardwachtwoord. Geef het zelf door.', !!error); laadGebruikers();
+  };
+  // link voor een nieuw wachtwoord: Supabase mailt de persoon zelf; via de link kiest die op de startpagina een nieuw wachtwoord
+  $('gbWwLink').onclick = async () => {
+    const g = persoon(GB.wie);
+    if (!confirm('Een link voor een nieuw wachtwoord sturen naar ' + g.email + '?\n\nDe persoon krijgt een mail met een link. Via die link kiest hij of zij zelf een nieuw wachtwoord. Het huidige wachtwoord blijft werken tot er een nieuw is gekozen.')) return;
+    $('gbWwLink').disabled = true;
+    const { error } = await sb.auth.resetPasswordForEmail(g.email, { redirectTo: BASIS + '/' });
+    $('gbWwLink').disabled = false;
+    if (error) { gbMeld(/rate|limit|seconds/i.test(error.message) ? 'Er zijn net te veel mails verstuurd. Probeer het over een paar minuten opnieuw.' : 'De link kon niet worden verstuurd: ' + error.message, true); return; }
+    sb.rpc('wachtwoord_link_gelogd', { p_email: g.email }).then(() => {}, () => {});
+    gbMeld('Er is een mail met een link voor een nieuw wachtwoord gestuurd naar ' + g.email + '.');
+  };
+  $('gbVerwijder').onclick = async () => {
+    const g = persoon(GB.wie);
+    if (!confirm(g.email + ' verwijderen?\n\nHet account wordt helemaal verwijderd, ook het wachtwoord en de toegang tot alle apps.\nGemaakte keuzes in de Collectiekeuze blijven bewaard.')) return;
+    $('gbVerwijder').disabled = true;
+    const { error } = await functie('account-verwijderen', { email: g.email });
+    $('gbVerwijder').disabled = false;
+    if (error) { gbMeld(gbFout(error), true); return; }
+    await laadGebruikers(); sluitRechten(); gbMeld(g.email + ' is verwijderd.');
+  };
 
   function tekenApps() {
     const { apps, ikBeh } = GB;
-    $('gbAppTabel').innerHTML = `<table class="gb-tabel"><thead><tr><th scope="col">App</th><th scope="col">Code</th><th scope="col">Webadres</th><th scope="col">Standaard aan voor iedereen</th></tr></thead><tbody>`
-      + apps.map(a => `<tr><th scope="row"><b>${esc(a.naam)}</b>${a.tekst ? `<small>${esc(a.tekst)}</small>` : ''}</th><td><code>${esc(a.code)}</code></td><td>${a.url ? `<a href="${esc(a.url)}">${esc(a.url.replace(/^https:\/\//, ''))}</a>` : '<span class="gb-grijs">Geen tegel</span>'}</td>
-        <td>${a.met_rol ? '<span class="gb-grijs">Toegang via een rol</span>' : a.code === 'gebruikersbeheer' ? '<span class="gb-grijs">Alleen op toewijzing</span>' : `<label class="gb-vink"><input type="checkbox" data-std="${esc(a.code)}"${a.standaard_aan ? ' checked' : ''}${ikBeh ? '' : ' disabled'}><span>${a.standaard_aan ? 'Ja' : 'Nee'}</span></label>`}</td></tr>`).join('')
+    $('gbAppTabel').innerHTML = `<table class="gb-tabel"><thead><tr><th scope="col">App</th><th scope="col">Code</th><th scope="col">Webadres</th><th scope="col">Wie heeft toegang</th><th scope="col">Standaard aan voor iedereen</th></tr></thead><tbody>`
+      + apps.map(a => {
+        const aantal = GB.lijst.filter(g => g.rol === 'beheerder' || rechtVan(g, a) !== 'geen').length;
+        return `<tr><th scope="row"><b>${esc(a.naam)}</b>${a.tekst ? `<small>${esc(a.tekst)}</small>` : ''}</th><td><code>${esc(a.code)}</code></td><td>${a.url ? `<a href="${esc(a.url)}">${esc(a.url.replace(/^https:\/\//, ''))}</a>` : '<span class="gb-grijs">Geen tegel</span>'}</td>
+        <td>${aantal} van ${GB.lijst.length}</td>
+        <td>${a.met_rol ? '<span class="gb-grijs">Toegang via een rol</span>' : a.code === 'gebruikersbeheer' ? '<span class="gb-grijs">Alleen op toewijzing</span>' : `<label class="gb-vink"><input type="checkbox" data-std="${esc(a.code)}"${a.standaard_aan ? ' checked' : ''}${ikBeh ? '' : ' disabled'}><span>${a.standaard_aan ? 'Ja' : 'Nee'}</span></label>`}</td></tr>`; }).join('')
       + '</tbody></table>';
     // keuzes voor een nieuw account: de apps die standaard aan staan, zijn al aangevinkt
     $('gbNieuwApps').innerHTML = apps.filter(a => a.code !== 'gebruikersbeheer' || ikBeh).map(a => a.met_rol
@@ -433,48 +596,12 @@ main.gb-open>:not(#gbGroep){display:none}
   }
   function tekenLog() {
     const zoek = $('gbLogZoek').value.trim().toLowerCase();
-    const naamVan = code => { const a = GB.apps.find(x => x.code === code); return a ? a.naam : (code || ''); };
-    const regels = GB.log.filter(l => !zoek || [l.door, l.email, naamVan(l.app), l.wijziging].join(' ').toLowerCase().includes(zoek));
+    const regels = GB.log.filter(l => !zoek || [l.door, l.email, appNaam(l.app || ''), l.wijziging].join(' ').toLowerCase().includes(zoek));
     $('gbLogTabel').innerHTML = regels.length ? `<table class="gb-tabel gb-logtabel"><thead><tr><th scope="col">Wanneer</th><th scope="col">Voor wie</th><th scope="col">App</th><th scope="col">Wijziging</th><th scope="col">Door</th></tr></thead><tbody>`
-      + regels.map(l => `<tr><td>${esc(new Date(l.op).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td><td>${esc(l.email || 'Iedereen')}</td><td>${esc(naamVan(l.app))}</td><td>${esc(l.wijziging)}</td><td>${esc(l.door || '')}</td></tr>`).join('')
+      + regels.map(l => `<tr><td>${esc(new Date(l.op).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td><td>${esc(l.email || 'Iedereen')}</td><td>${esc(l.app ? appNaam(l.app) : '')}</td><td>${esc(l.wijziging)}</td><td>${esc(l.door || '')}</td></tr>`).join('')
       + '</tbody></table>' : '<p class="leeg">Geen wijzigingen gevonden.</p>';
   }
 
-  // wijzigingen in de tabel: elke klik gaat direct naar de database
-  const persoon = email => GB.lijst.find(x => x.email === email) || { email, naam: '' };
-  const appNaam = code => { const a = GB.apps.find(x => x.code === code); return a ? a.naam : code; };
-  async function zetRol(g, rol, tekst) {
-    const { error } = await sb.rpc('gebruiker_zet', { p_email: g.email, p_naam: g.naam || '', p_rol: rol });
-    gbMeld(error ? gbFout(error) : (g.naam || g.email) + ': ' + tekst, !!error); laadGebruikers();
-  }
-  $('gbTabel').addEventListener('change', async e => {
-    const d = e.target.dataset;
-    if (d.rol) return zetRol(persoon(d.rol), e.target.value, 'Collectiekeuze staat nu op ' + CK_ROL[e.target.value].toLowerCase() + '.');
-    if (d.beh) {
-      const g = persoon(d.beh);
-      if (e.target.checked && !confirm((g.naam || g.email) + ' beheerder maken?\n\nEen beheerder ziet en beheert alle apps, ook de resultaten in de Collectiekeuze, en kan andere beheerders aanwijzen.')) { e.target.checked = false; return; }
-      return zetRol(g, e.target.checked ? 'beheerder' : 'geen', e.target.checked ? 'is nu beheerder.' : 'is geen beheerder meer. Stel de toegang per app opnieuw in.');
-    }
-    if (d.app) {
-      const [em, app] = d.app.split('|'); e.target.disabled = true;
-      const { error } = await sb.rpc('zichtbaarheid_zet', { p_email: em, p_app: app, p_zichtbaar: e.target.checked });
-      gbMeld(error ? gbFout(error) : (persoon(em).naam || em) + ' ziet ' + appNaam(app) + ' nu ' + (e.target.checked ? 'wel' : 'niet') + '.', !!error); return laadGebruikers();
-    }
-    if (d.lees) {
-      const [em, app] = d.lees.split('|'); e.target.disabled = true;
-      const { error } = await sb.rpc('zichtbaarheid_bewerken_zet', { p_email: em, p_app: app, p_bewerken: !e.target.checked });
-      gbMeld(error ? gbFout(error) : (persoon(em).naam || em) + ' mag ' + appNaam(app) + ' nu ' + (e.target.checked ? 'alleen lezen' : 'ook bewerken') + '.', !!error); return laadGebruikers();
-    }
-  });
-  // verwijderen (alleen beheerders): van de lijst en het inlogaccount zelf
-  $('gbTabel').addEventListener('click', async e => {
-    const b = e.target.closest('[data-del]'); if (!b) return;
-    const em = b.dataset.del;
-    if (!confirm(em + ' verwijderen?\n\nHet account wordt helemaal verwijderd, ook het wachtwoord en de toegang tot alle apps.\nGemaakte keuzes in de Collectiekeuze blijven bewaard.')) return;
-    b.disabled = true;
-    const { error } = await functie('account-verwijderen', { email: em });
-    gbMeld(error ? gbFout(error) : em + ' is verwijderd.', !!error); laadGebruikers();
-  });
   $('gbAppTabel').addEventListener('change', async e => {
     const code = e.target.dataset.std; if (!code) return;
     if (e.target.checked && !confirm(appNaam(code) + ' standaard aanzetten?\n\nIedereen die nog geen instelling voor deze app heeft, krijgt hem nu te zien, en elk nieuw account ook. Wie de app bewust uit heeft staan, houdt dat.')) { e.target.checked = false; return; }
@@ -495,6 +622,7 @@ main.gb-open>:not(#gbGroep){display:none}
   // openen en sluiten: het gebruikersbeheer krijgt de hele pagina
   function toonGebruikers() {
     document.querySelector('main').classList.add('gb-open'); $('gbGroep').hidden = false;
+    GB.wie = null; $('gbPaneelRechten').hidden = true; $('gbTabs').hidden = false; $('gbKop').hidden = false;
     gbMeld(''); kiesTab('Gebruikers'); laadGebruikers(); window.scrollTo(0, 0);
   }
   $('gbTerug').onclick = () => {
@@ -534,7 +662,7 @@ main.gb-open>:not(#gbGroep){display:none}
     if (!/^[a-z0-9-]{2,60}$/.test(code)) return gbMeld('De code mag alleen kleine letters, cijfers en koppeltekens bevatten, bijvoorbeeld de naam van de repo.', true);
     if (!naam) return gbMeld('Vul een naam in voor de app.', true);
     const { error } = await sb.rpc('app_zet', { p_code: code, p_naam: naam, p_tekst: $('gbAppTekst').value, p_url: $('gbAppUrl').value, p_volgorde: 100 });
-    gbMeld(error ? gbFout(error) : naam + ' is toegevoegd. Zet de app per persoon aan op het tabblad Gebruikers; beheerders zien hem meteen.', !!error);
+    gbMeld(error ? gbFout(error) : naam + ' is toegevoegd. Geef per persoon toegang via Rechten aanpassen; beheerders zien de app meteen.', !!error);
     if (!error) { ['gbAppCode', 'gbAppNaam', 'gbAppTekst', 'gbAppUrl'].forEach(id => $(id).value = ''); laadGebruikers(); }
   });
 
@@ -565,14 +693,17 @@ main.gb-open>:not(#gbGroep){display:none}
     if (magGb) window.addEventListener('hashchange', () => { if (location.hash === '#gebruikers') toonGebruikers(); });
     scherm.hidden = true; $('app').hidden = false;
     const meta = user.user_metadata || {};
-    if (meta.wachtwoord_wijzigen) setTimeout(() => toonWachtwoord(true, true), 0);
+    if (herstel) { herstel = false; setTimeout(() => toonWachtwoord(false, true), 0); }
+    else if (meta.wachtwoord_wijzigen) setTimeout(() => toonWachtwoord(true, true), 0);
     else if (!meta.wachtwoord) setTimeout(() => toonWachtwoord(true), 0);
   }
   $('uitKnop').onclick = async () => { await sb.auth.signOut(); location.reload(); };
   $('wwKnop').onclick = () => toonWachtwoord(false);
 
+  let herstel = false;   // ingelogd via een link voor een nieuw wachtwoord
   async function start() {
     sb.auth.onAuthStateChange((ev, s) => {
+      if (ev === 'PASSWORD_RECOVERY') { herstel = true; if (gestart) setTimeout(() => toonWachtwoord(false, true), 0); }
       if (s && isBlom(s.user)) setTimeout(() => ga(s.user), 0);
       else if (s && !isBlom(s.user)) { sb.auth.signOut(); toonLogin('Dit account heeft geen toegang. Gebruik je ' + CFG.domein + ' adres.'); }
       else if (ev === 'SIGNED_OUT') { gestart = false; toonLogin(); }
