@@ -217,9 +217,8 @@ fieldset.gb-app:disabled{opacity:.55}
           <div class="gb-acties gb-links"><button type="submit" class="gb-knop" id="gbOpslaan">Opslaan</button><button type="button" class="gb-knop gb-licht" id="gbRechtenAnnuleer">Annuleren</button></div>
           <div class="gb-blok">
             <h3>Account</h3>
-            <p class="gb-uitleg">Wachtwoord vergeten? Stuur een link waarmee de persoon zelf een nieuw wachtwoord kiest (er gaat een mail naar het eigen adres), of zet het wachtwoord terug naar het standaardwachtwoord (geen mail; je geeft het zelf door).</p>
+            <p class="gb-uitleg">Wachtwoord vergeten? Zet het terug naar het standaardwachtwoord en geef dat zelf door. Er wordt geen mail verstuurd; bij de eerstvolgende keer inloggen kiest de persoon een eigen wachtwoord.</p>
             <div class="gb-acties gb-links">
-              <button type="button" class="gb-knop gb-licht" id="gbWwLink">Link voor nieuw wachtwoord sturen</button>
               <button type="button" class="gb-knop gb-licht" id="gbWwTerug">Wachtwoord terugzetten naar standaard</button>
               <button type="button" class="gb-knop gb-licht gb-rood" id="gbVerwijder">Account verwijderen</button>
             </div>
@@ -510,7 +509,7 @@ fieldset.gb-app:disabled{opacity:.55}
     $('gbRechtenLijst').classList.toggle('gb-uit', beh);
     $('gbBehUitleg').hidden = !beh;
     $('gbVerwijder').hidden = !GB.ikBeh || g.email === ik;
-    $('gbWwTerug').hidden = g.email === ik; $('gbWwLink').hidden = stand === 'nog geen account';
+    $('gbWwTerug').hidden = g.email === ik;
   }
   $('gbBeh').addEventListener('change', () => { $('gbRechtenLijst').classList.toggle('gb-uit', $('gbBeh').checked); $('gbBehUitleg').hidden = !$('gbBeh').checked; });
   $('gbRechtenTerug').onclick = sluitRechten; $('gbRechtenAnnuleer').onclick = sluitRechten;
@@ -552,17 +551,6 @@ fieldset.gb-app:disabled{opacity:.55}
     const { error } = await functie('account-aanmaken', { email: g.email, naam: g.naam || '', rol: g.rol });
     $('gbWwTerug').disabled = false;
     gbMeld(error ? gbFout(error) : (g.naam || g.email) + ' heeft weer het standaardwachtwoord. Geef het zelf door.', !!error); laadGebruikers();
-  };
-  // link voor een nieuw wachtwoord: Supabase mailt de persoon zelf; via de link kiest die op de startpagina een nieuw wachtwoord
-  $('gbWwLink').onclick = async () => {
-    const g = persoon(GB.wie);
-    if (!confirm('Een link voor een nieuw wachtwoord sturen naar ' + g.email + '?\n\nDe persoon krijgt een mail met een link. Via die link kiest hij of zij zelf een nieuw wachtwoord. Het huidige wachtwoord blijft werken tot er een nieuw is gekozen.')) return;
-    $('gbWwLink').disabled = true;
-    const { error } = await sb.auth.resetPasswordForEmail(g.email, { redirectTo: BASIS + '/' });
-    $('gbWwLink').disabled = false;
-    if (error) { gbMeld(/rate|limit|seconds/i.test(error.message) ? 'Er zijn net te veel mails verstuurd. Probeer het over een paar minuten opnieuw.' : 'De link kon niet worden verstuurd: ' + error.message, true); return; }
-    sb.rpc('wachtwoord_link_gelogd', { p_email: g.email }).then(() => {}, () => {});
-    gbMeld('Er is een mail met een link voor een nieuw wachtwoord gestuurd naar ' + g.email + '.');
   };
   $('gbVerwijder').onclick = async () => {
     const g = persoon(GB.wie);
