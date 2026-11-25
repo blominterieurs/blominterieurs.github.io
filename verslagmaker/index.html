@@ -1096,7 +1096,17 @@ function toonInlog(sessie){
   $("nieuwVelden").hidden = !(sessie && wachtwoordWijzigen);
   $("inlogKnop").textContent = sessie && wachtwoordWijzigen ? "Wachtwoord opslaan" : "Inloggen";
   $("inlogUitleg").textContent = sessie && wachtwoordWijzigen ? "Kies bij je eerste keer inloggen een eigen wachtwoord van minimaal 8 tekens." : "Log in met je Blom-account. Ben je al ingelogd op de Blom startpagina, dan gaat dit vanzelf.";
-  if (binnen){ zetStatus("status1", ""); if (!prijsGeladen) haalPrijs(); }
+  if (binnen){ zetStatus("status1", ""); if (!prijsGeladen) haalPrijs(); controleerToegang(); }
+}
+// Toegang per persoon staat in het gebruikersbeheer op de Blom startpagina (app "verslagmaker").
+// Lukt de controle zelf niet (bijvoorbeeld geen verbinding), dan blijft de app gewoon open.
+async function controleerToegang(){
+  try {
+    const { data, error } = await supa.rpc("mag_app", { p_app: "verslagmaker" });
+    if (error || data !== false) return;
+    $("inlog").hidden = false; $("inlogVelden").hidden = true; $("nieuwVelden").hidden = true; $("inlogKnop").hidden = true;
+    $("inlogUitleg").textContent = "Je account heeft geen toegang tot de Verslagmaker. Vraag toegang aan bij iemand die het gebruikersbeheer doet op de Blom startpagina.";
+  } catch(e){}
 }
 $("inlogForm").addEventListener("submit", async (e) => {
   e.preventDefault();
