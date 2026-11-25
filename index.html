@@ -89,7 +89,7 @@ footer{font-size:12px;color:var(--g400)}
     { naam: 'Collectiekeuze', tekst: 'Collectie bekijken en je keuzes per leverancier maken.', url: BASIS + '/collectiekeuze/', alleen: 'collectie' },
     { naam: 'Doelgroepoverzicht', tekst: 'Enquête per label en segment, met posters per label.', url: BASIS + '/doelgroepoverzicht/' },
     { naam: 'Verslagmaker', tekst: 'Fireflies samenvatting omzetten naar een Blom verslag, als PDF of Word.', url: BASIS + '/verslagmaker/' },
-    { naam: 'Kerstkaarten 2026', tekst: 'Wie krijgt een kerstkaart, met of zonder geschenk, en van wie komt die.', url: BASIS + '/kerstkaarten-2026/', alleen: 'collectie' }
+    { naam: 'Kerstkaarten 2026', tekst: 'Wie krijgt een kerstkaart, met of zonder geschenk, en van wie komt die.', url: BASIS + '/kerstkaarten-2026/', app: 'kerstkaarten-2026' }
   ];
   const BEHEER = [
     { naam: 'Collectiekeuze test', tekst: 'Testomgeving: tussenversies, keuzes tellen niet mee voor live.', url: BASIS + '/collectiekeuze/test/', test: true },
@@ -220,16 +220,22 @@ footer{font-size:12px;color:var(--g400)}
     if (error) return null;
     return data;
   }
+  async function haalApps() {
+    // apps met zichtbaarheid per persoon (schema gebruikersbeheer); beheerders zien alles
+    const { data, error } = await sb.rpc('mijn_apps');
+    return error || !Array.isArray(data) ? [] : data;
+  }
   async function ga(user) {
     if (gestart) return;
     gestart = true;
     window.BLOM_USER = user;
     const rol = await haalRol();
+    const mijnApps = await haalApps();
     const naam = (rol && rol.naam) || user.email.split('@')[0].split(/[._-]/)[0];
     $('groet').textContent = 'Welkom, ' + naam.charAt(0).toUpperCase() + naam.slice(1);
     $('wieTekst').textContent = 'Ingelogd als ' + user.email;
     const apps = $('apps'); apps.innerHTML = '';
-    APPS.filter(a => a.alleen !== 'collectie' || rol).forEach(a => apps.appendChild(tegel(a)));
+    APPS.filter(a => (a.alleen !== 'collectie' || rol) && (!a.app || mijnApps.includes(a.app))).forEach(a => apps.appendChild(tegel(a)));
     const beheer = $('beheer'); beheer.innerHTML = '';
     const isBeheerder = rol && rol.rol === 'beheerder';
     if (isBeheerder) BEHEER.forEach(a => beheer.appendChild(tegel(a)));
