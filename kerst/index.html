@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#262626">
+<title>Fijne feestdagen van Blom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: warm, ondeugend, kort. Blom spreekt als bondgenoot: je/jij, geen uitroeptekens in koppen.
+IDEA: de binnenkant van een kerstkaart die opengaat: eerst het filmpje, dan klapt de kaart open met de wens en de acties.
+PICTURE: de video schermvullend, met zachte sneeuw en warm kaarslicht eroverheen.
+COLOUR and TYPE: Blom zwart en wit, warm kaarslicht als enige gloed (geen sublabelkleuren). Roc Grotesk voor titels (valt terug op Plus Jakarta Sans), Plus Jakarta Sans voor tekst en cijfers.
+LAYOUT: één scherm, staand. Logo linksboven in de marge, geluidsknop onderin, na afloop schuift de kaart van onder omhoog met drie haakse knoppen.
+*/
+:root{color-scheme:dark;--zwart:#3A3A3A;--donker:#262626;--wit:#fff;--licht:#F3E6CF;--m:max(24px,4.2vw);
+  --display:"Roc Grotesk","Plus Jakarta Sans",system-ui,sans-serif;--body:"Plus Jakarta Sans",system-ui,sans-serif}
+*{box-sizing:border-box;min-width:0;margin:0}
+html,body{height:100%;background:var(--donker);color:var(--wit)}
+body{font:16px/1.5 var(--body);overflow:hidden;-webkit-font-smoothing:antialiased}
+button,a{font:inherit;color:inherit}
+.stage{position:fixed;inset:0;overflow:hidden;background:var(--donker)}
+.stage video,.stage .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.poster{display:none;animation:kb 14s ease-out forwards}
+.demo .poster{display:block}.demo video{display:none}
+@keyframes kb{from{transform:scale(1.05)}to{transform:scale(1.22) translateY(3%)}}
+.shade{position:absolute;inset:0;pointer-events:none;background:
+  radial-gradient(120% 60% at 50% 0%,rgba(38,38,38,.55),transparent 55%),
+  linear-gradient(to top,rgba(38,38,38,.85),rgba(38,38,38,0) 38%);transition:background .6s}
+.glow{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:.55;
+  background:radial-gradient(60% 40% at 85% 70%,rgba(243,190,120,.22),transparent 70%)}
+canvas.snow{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.frame{position:absolute;inset:0;overflow:hidden}
+.backdrop{display:none;position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(28px) brightness(.45);transform:scale(1.05)}
+canvas.snow{z-index:3}
+@media (min-aspect-ratio:1/1){
+  .backdrop{display:block}
+  .frame{left:50%;right:auto;width:min(100vw,calc(100dvh * 2 / 3));transform:translateX(-50%);box-shadow:0 0 80px rgba(0,0,0,.5);z-index:4}
+  .frame .card{max-width:none}
+}
+
+.bar{position:absolute;top:0;left:0;height:3px;width:0;background:var(--wit);opacity:.85;z-index:5}
+header{position:absolute;z-index:8;top:calc(var(--m) + env(safe-area-inset-top));left:var(--m);right:var(--m);display:flex;justify-content:space-between;align-items:center}
+header .logo{width:clamp(54px,15vw,80px);color:var(--wit);display:block}
+.skip{background:none;border:0;padding:12px 0 12px 16px;font-size:14px;font-weight:500;opacity:.85;cursor:pointer;min-height:44px}
+.skip:hover{opacity:1;text-decoration:underline;text-underline-offset:4px}
+.sound{position:absolute;z-index:4;left:50%;bottom:calc(var(--m) + env(safe-area-inset-bottom));transform:translateX(-50%);
+  display:flex;align-items:center;gap:12px;padding:18px 28px;min-height:56px;border:0;border-radius:0;background:var(--wit);color:var(--donker);
+  font-weight:600;font-size:16px;cursor:pointer;white-space:nowrap;animation:pulse 2.4s ease-in-out infinite}
+.sound svg{width:22px;height:22px}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.45)}50%{box-shadow:0 0 0 14px rgba(255,255,255,0)}}
+.sound[hidden]{display:none}
+.subs{position:absolute;z-index:4;left:50%;transform:translateX(-50%);bottom:calc(var(--m) + 84px + env(safe-area-inset-bottom));
+  width:min(90%,520px);text-align:center;pointer-events:none;transition:bottom .3s}
+.subs span{display:inline;background:rgba(38,38,38,.82);color:var(--wit);font:500 clamp(18px,4.8vw,22px)/1.45 var(--body);padding:4px 10px;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone}
+.subs:empty{display:none}
+.unmuted .subs{bottom:calc(var(--m) + 16px + env(safe-area-inset-bottom))}
+.ended .subs,.demo .subs{display:none}
+.opening{position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;justify-content:center;
+  padding:calc(var(--m) * 1.2) var(--m) calc(var(--m) + env(safe-area-inset-bottom));
+  background:linear-gradient(to bottom,rgba(38,38,38,.25),rgba(38,38,38,.62) 35%,rgba(38,38,38,.62) 65%,rgba(38,38,38,.25));transition:opacity .45s,visibility .45s}
+.opening>*{width:100%;max-width:512px;margin-inline:auto}
+.opening h2{font:500 clamp(34px,9vw,48px)/1.04 var(--display);text-wrap:balance;letter-spacing:-.01em;margin-bottom:26px}
+.open{display:flex;align-items:center;justify-content:center;gap:14px;min-height:68px;padding:20px 28px;border:0;border-radius:0;
+  background:var(--wit);color:var(--donker);font:600 19px/1 var(--body);cursor:pointer;animation:pulse 2.4s ease-in-out infinite}
+.open svg{width:22px;height:22px}
+.open:hover{background:#ececec}.open:focus-visible{outline:2px solid var(--wit);outline-offset:3px}
+.hint{font-size:14px;opacity:.8;margin-top:14px}
+.started .opening{opacity:0;visibility:hidden}
+.stage:not(.started) .skip,.stage:not(.started) .subs{display:none}
+.stage:not(.started) .poster{display:block;animation:none}
+.stage:not(.started) video{visibility:hidden}
+.card{position:absolute;z-index:6;left:0;right:0;bottom:0;padding:calc(var(--m) * 1.2) var(--m) calc(var(--m) + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .7s cubic-bezier(.2,.8,.2,1);
+  background:linear-gradient(to top,var(--donker) 0%,var(--donker) 62%,rgba(38,38,38,.85) 82%,rgba(38,38,38,0) 100%);padding-top:clamp(80px,14vh,160px)}
+.card>*,.card>.intro{width:100%;max-width:512px;margin-inline:auto}
+.ended .card{transform:none}
+.ended .shade{background:linear-gradient(to bottom,rgba(38,38,38,.35),rgba(38,38,38,.7))}
+.ended .sound,.ended .skip{display:none}
+.num{font-family:var(--body);font-weight:500}
+.ended header .logo{visibility:hidden}
+.kicker{font-size:14px;font-weight:500;opacity:.8;margin-bottom:10px}
+h1{font:500 clamp(34px,9vw,48px)/1.04 var(--display);text-wrap:balance;letter-spacing:-.01em}
+.intro{font-weight:200;font-size:17px;line-height:1.5;margin:14px 0 26px;max-width:34ch}
+.ctas{display:grid;gap:12px}
+.cta{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;min-height:64px;text-decoration:none;border:1.5px solid var(--wit);border-radius:0;
+  transition:background .25s,color .25s}
+.cta .t{display:flex;flex-direction:column;line-height:1.25}
+.cta b{font:500 18px/1.2 var(--display)}
+.cta small{font-size:14px;font-weight:400;opacity:.8;white-space:nowrap}
+.cta svg{width:22px;height:22px;flex:none;transition:transform .25s}
+.cta:hover svg,.cta:focus-visible svg{transform:translateX(4px)}
+.cta.main{background:var(--wit);color:var(--donker)}
+.cta.main:hover{background:#ececec}
+.cta:not(.main):hover{background:rgba(255,255,255,.1)}
+.cta:focus-visible,.sound:focus-visible,.skip:focus-visible,.again:focus-visible{outline:2px solid var(--wit);outline-offset:3px}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:22px;gap:16px}
+.foot .payoff{width:118px;color:var(--wit)}
+.again{background:none;border:0;padding:12px 0;font-size:14px;font-weight:500;cursor:pointer;opacity:.85;min-height:44px;display:flex;gap:8px;align-items:center}
+.again:hover{opacity:1;text-decoration:underline;text-underline-offset:4px}
+.again svg{width:16px;height:16px}
+.note{position:absolute;z-index:4;bottom:calc(var(--m) + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);white-space:nowrap;font-size:13px;background:rgba(38,38,38,.75);padding:6px 10px;display:none}
+.demo .note{display:block}.ended .note{display:none}
+@media (prefers-reduced-motion:reduce){.poster,.sound{animation:none}.card{transition:none}canvas.snow{display:none}}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+  <img class="backdrop" src="poster.jpg" alt="" aria-hidden="true">
+  <div class="frame" id="frame">
+  <video id="v" playsinline preload="auto" poster="poster.jpg" aria-label="Kerstgroet van de kerstman namens Blom">
+    <source src="kerstman.mp4" type="video/mp4">
+  </video>
+  <img class="poster" src="poster.jpg" alt="De kerstman in roze pruik aan een gedekte kersttafel">
+  <div class="glow"></div>
+  <div class="shade"></div>
+  <div class="bar" id="bar"></div>
+  <section class="opening" id="opening">
+    <p class="kicker">Van alle medewerkers van Blom</p>
+    <h2>Er staat een kerstgroet voor je klaar</h2>
+    <button class="open" id="open" type="button">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12.5-7.5z"/></svg>
+      Open je kerstgroet
+    </button>
+    <p class="hint">Zet je geluid aan. Duurt een halve minuut.</p>
+  </section>
+  <p class="subs" id="subs" aria-hidden="true"></p>
+  <button class="sound" id="sound" type="button" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+    Tik voor de kerstgroet met geluid
+  </button>
+  <section class="card" id="card" aria-live="polite">
+    <p class="kicker">Namens alle medewerkers van Blom</p>
+    <h1>Fijne feestdagen en een warm <span class="num">2027</span></h1>
+    <p class="intro">Ook volgend jaar zo warmpjes zitten, in een interieur dat klopt? Bel ons even. Wij regelen het gewoon, van A tot Z.</p>
+    <div class="ctas">
+      <a class="cta main" id="c-bel" href="tel:+31515334100">
+        <span class="t"><b>Bel Blom</b><small>+31 (0)515 33 41 00</small></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a class="cta" id="c-mail" href="mailto:info@blominteriors.com?subject=Kerstgroet%20ontvangen%20-%20graag%20contact">
+        <span class="t"><b>Mail Blom</b><small>info@blominteriors.com</small></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a class="cta" id="c-web" href="https://www.blominteriors.com/?utm_source=kerstkaart&amp;utm_medium=qr&amp;utm_campaign=kerst2026" target="_blank" rel="noopener">
+        <span class="t"><b>Ga naar de website</b><small>blominteriors.com</small></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+    <div class="foot">
+      <button class="again" id="again" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></svg>
+        Bekijk opnieuw
+      </button>
+      <span class="payoff" aria-label="Blom, Making spaces for you"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 89.97 41.12" fill="currentColor"><path d="M14.96 15.2C14.96 12.35 13.32 10.49 10.84 10.49C8.36 10.49 6.71 12.35 6.71 15.2C6.71 18.04 8.36 19.9 10.84 19.9C13.32 19.9 14.96 18.04 14.96 15.2M21.75 15.2C21.75 21.65 17.8 25.59 12.01 25.59C9.74 25.59 7.77 24.79 6.71 23.52L6.71 25.3L0 25.3L0 0L6.71 0L6.71 6.66C7.81 5.67 9.49 4.8 12.11 4.8C17.8 4.8 21.75 8.74 21.75 15.2"/><path d="M24.08 0h6.71v25.3h-6.71z"/><path d="M48.52 15.2C48.52 12.35 46.88 10.49 44.4 10.49C41.92 10.49 40.28 12.35 40.28 15.2C40.28 18.04 41.92 19.9 44.4 19.9C46.88 19.9 48.52 18.04 48.52 15.2M33.49 15.2C33.49 9.1 38.05 4.8 44.4 4.8C50.75 4.8 55.31 9.1 55.31 15.2C55.31 21.29 50.75 25.59 44.4 25.59C38.05 25.59 33.49 21.29 33.49 15.2"/><path d="M89.97 12.2L89.97 25.3L83.29 25.3L83.29 14.03C83.29 12.02 82.19 10.71 80.55 10.71C78.44 10.71 77.34 12.72 77.34 16.47L77.34 25.3L70.63 25.3L70.63 14.03C70.63 12.02 69.57 10.71 67.93 10.71C65.81 10.71 64.68 12.72 64.68 16.47L64.68 25.3L58 25.3L58 5.09L64.68 5.09L64.68 7.02C65.45 6 67.53 4.8 70.23 4.8C72.89 4.8 75.12 5.97 76.17 7.53C78.18 5.49 80.59 4.8 82.89 4.8C87.16 4.8 89.97 7.75 89.97 12.2"/><path d="M0 33.94L1.58 33.94L3.03 38.03L3.05 38.03L4.51 33.94L6.05 33.94L6.05 39.36L5.06 39.36L5.08 34.71L5.07 34.71L3.41 39.36L2.59 39.36L0.93 34.71L0.91 34.71L0.93 39.36L0 39.36L0 33.94"/><path d="M10.01 37.72L10.01 37.65L8.59 37.65C8.06 37.65 7.83 37.83 7.83 38.15C7.83 38.52 8.16 38.73 8.72 38.73C9.52 38.73 10.01 38.35 10.01 37.72M6.98 38.19C6.98 37.57 7.42 37.09 8.51 37.09L10.01 37.09L10.01 36.8C10.01 36.19 9.66 35.92 8.94 35.92C8.32 35.92 7.96 36.16 7.96 36.61C7.96 36.63 7.96 36.7 7.97 36.77L7.12 36.77C7.12 36.71 7.11 36.6 7.11 36.53C7.11 35.71 7.82 35.23 8.98 35.23C10.21 35.23 10.94 35.81 10.94 36.88L10.94 39.36L10.01 39.36C10.03 39.16 10.06 38.79 10.06 38.46L10.05 38.46C9.92 39.06 9.43 39.43 8.53 39.43C7.6 39.43 6.98 38.98 6.98 38.19"/><path d="M11.91 33.65L12.83 33.65L12.83 37.42L12.84 37.42L15.03 35.29L16.22 35.29L14.32 37.06L16.33 39.36L15.08 39.36L13.65 37.65L12.83 38.4L12.83 39.36L11.91 39.36L11.91 33.65"/><path d="M17.05 35.29h0.92v4.07h-0.92zM17.04 33.91h0.95v0.91h-0.95z"/><path d="M19 35.29L19.92 35.29L19.89 36.38L19.9 36.38C20.12 35.65 20.65 35.23 21.59 35.23C22.62 35.23 23.26 35.81 23.26 36.82L23.26 39.36L22.33 39.36L22.33 37.02C22.33 36.38 21.97 36.02 21.24 36.02C20.43 36.02 19.92 36.5 19.92 37.39L19.92 39.36L19 39.36L19 35.29"/><path d="M25.13 36.68C25.13 37.16 25.49 37.47 26.07 37.47C26.64 37.47 27 37.16 27 36.68C27 36.19 26.64 35.88 26.07 35.88C25.49 35.88 25.13 36.19 25.13 36.68M27.48 39.85C27.48 39.58 27.28 39.43 26.84 39.43L25.74 39.43C25.27 39.43 24.98 39.57 24.98 39.89C24.98 40.27 25.47 40.46 26.25 40.46C27.12 40.46 27.48 40.22 27.48 39.85M28.4 39.75C28.4 40.6 27.61 41.12 26.26 41.12C24.89 41.12 24.06 40.69 24.06 39.96C24.06 39.55 24.37 39.25 24.85 39.22L24.85 39.21C24.62 39.06 24.5 38.83 24.5 38.55C24.5 38.2 24.66 37.96 24.88 37.85L24.88 37.84C24.48 37.59 24.25 37.19 24.25 36.68C24.25 35.79 24.95 35.23 26.07 35.23C26.53 35.23 26.91 35.32 27.2 35.49L27.21 35.48C27.09 35.35 27.01 35.19 27.01 35.02C27.01 34.69 27.33 34.48 27.81 34.48C28.01 34.48 28.12 34.5 28.22 34.53L28.22 35.18C28.16 35.15 28.07 35.14 27.95 35.14C27.68 35.14 27.55 35.25 27.55 35.47C27.55 35.59 27.59 35.73 27.64 35.88C27.79 36.1 27.88 36.37 27.88 36.68C27.88 37.57 27.19 38.13 26.07 38.13C25.8 38.13 25.56 38.09 25.35 38.03C25.3 38.09 25.25 38.21 25.25 38.35C25.25 38.58 25.41 38.72 25.71 38.72L27.03 38.72C27.9 38.72 28.4 39.1 28.4 39.75"/><path d="M31.03 38L31.86 38C31.86 38.47 32.13 38.76 32.92 38.76C33.67 38.76 34 38.53 34 38.16C34 38 33.95 37.86 33.73 37.79C33.53 37.71 33.15 37.67 32.69 37.63C32.06 37.57 31.63 37.49 31.38 37.31C31.16 37.14 31.03 36.85 31.03 36.54C31.03 35.72 31.82 35.23 32.92 35.23C34.19 35.23 34.75 35.75 34.75 36.68L33.92 36.68C33.91 36.15 33.62 35.89 32.95 35.89C32.31 35.89 31.94 36.12 31.94 36.47C31.94 36.64 31.99 36.81 32.22 36.89C32.42 36.96 32.81 37 33.3 37.05C33.88 37.1 34.21 37.16 34.5 37.33C34.77 37.47 34.93 37.79 34.93 38.12C34.93 38.94 34.23 39.43 32.93 39.43C31.53 39.43 31.03 38.8 31.03 38"/><path d="M39.22 37.28C39.22 36.49 38.76 35.98 38.03 35.98C37.26 35.98 36.75 36.5 36.74 37.32L36.74 37.53C36.74 38.22 37.26 38.67 38.05 38.67C38.76 38.67 39.22 38.12 39.22 37.28M35.81 35.29L36.74 35.29L36.72 36.24L36.73 36.24C36.89 35.62 37.44 35.23 38.24 35.23C39.41 35.23 40.14 36.02 40.14 37.25C40.14 38.57 39.4 39.43 38.23 39.43C37.42 39.43 36.89 39.06 36.72 38.54L36.71 38.54C36.72 38.81 36.74 39.23 36.74 39.39L36.74 40.99L35.81 40.99L35.81 35.29"/><path d="M43.71 37.72L43.71 37.65L42.29 37.65C41.76 37.65 41.53 37.83 41.53 38.15C41.53 38.52 41.86 38.73 42.42 38.73C43.22 38.73 43.71 38.35 43.71 37.72M40.68 38.19C40.68 37.57 41.12 37.09 42.21 37.09L43.71 37.09L43.71 36.8C43.71 36.19 43.36 35.92 42.64 35.92C42.02 35.92 41.66 36.16 41.66 36.61C41.66 36.63 41.66 36.7 41.67 36.77L40.82 36.77C40.81 36.71 40.8 36.6 40.8 36.53C40.8 35.71 41.51 35.23 42.67 35.23C43.91 35.23 44.63 35.81 44.63 36.88L44.63 39.36L43.71 39.36C43.73 39.16 43.75 38.79 43.75 38.46L43.75 38.46C43.61 39.06 43.13 39.43 42.23 39.43C41.3 39.43 40.68 38.98 40.68 38.19"/><path d="M45.46 37.33C45.46 36.02 46.27 35.23 47.5 35.23C48.64 35.23 49.38 35.88 49.38 36.96L48.55 36.96C48.54 36.35 48.14 35.98 47.53 35.98C46.82 35.98 46.38 36.49 46.38 37.33C46.38 38.16 46.81 38.67 47.49 38.67C48.14 38.67 48.55 38.31 48.56 37.7L49.39 37.7C49.39 38.79 48.61 39.43 47.45 39.43C46.26 39.43 45.46 38.63 45.46 37.33"/><path d="M53.3 36.89C53.3 36.28 52.92 35.94 52.25 35.94C51.62 35.94 51.21 36.27 51.11 36.95L53.3 36.95L53.3 36.89M54.13 37.51L51.08 37.51C51.13 38.29 51.57 38.71 52.26 38.71C52.85 38.71 53.26 38.45 53.3 37.97L54.13 37.97C54.1 38.87 53.36 39.43 52.24 39.43C50.96 39.43 50.15 38.64 50.15 37.36C50.15 36.04 50.96 35.23 52.24 35.23C53.4 35.23 54.13 35.91 54.13 37.18L54.13 37.51"/><path d="M54.87 38L55.7 38C55.7 38.47 55.97 38.76 56.77 38.76C57.52 38.76 57.84 38.53 57.84 38.16C57.84 38 57.79 37.86 57.57 37.79C57.38 37.71 56.99 37.67 56.54 37.63C55.9 37.57 55.47 37.49 55.23 37.31C55 37.14 54.87 36.85 54.87 36.54C54.87 35.72 55.66 35.23 56.77 35.23C58.03 35.23 58.59 35.75 58.59 36.68L57.76 36.68C57.75 36.15 57.47 35.89 56.79 35.89C56.15 35.89 55.79 36.12 55.79 36.47C55.79 36.64 55.83 36.81 56.07 36.89C56.26 36.96 56.65 37 57.14 37.05C57.72 37.1 58.05 37.16 58.34 37.33C58.61 37.47 58.77 37.79 58.77 38.12C58.77 38.94 58.08 39.43 56.77 39.43C55.37 39.43 54.87 38.8 54.87 38"/><path d="M61.86 36.04L61.21 36.04L61.21 35.29L61.86 35.29L61.86 34.89C61.86 33.98 62.46 33.49 63.35 33.49C63.71 33.49 64 33.55 64.14 33.6L64.14 34.34C64 34.29 63.79 34.24 63.51 34.24C63.04 34.24 62.79 34.48 62.79 34.93L62.79 35.29L64.2 35.29L64.2 36.04L62.79 36.04L62.79 39.36L61.86 39.36L61.86 36.04"/><path d="M67.83 37.33C67.83 36.5 67.37 35.98 66.62 35.98C65.87 35.98 65.42 36.5 65.42 37.33C65.42 38.16 65.87 38.67 66.62 38.67C67.37 38.67 67.83 38.16 67.83 37.33M64.5 37.33C64.5 36.03 65.33 35.22 66.62 35.22C67.92 35.22 68.76 36.03 68.76 37.33C68.76 38.63 67.92 39.43 66.62 39.43C65.33 39.43 64.5 38.63 64.5 37.33"/><path d="M69.61 35.29L70.53 35.29L70.5 36.46L70.51 36.46C70.7 35.73 71.12 35.23 71.96 35.23C72.84 35.23 73.33 35.8 73.33 36.82C73.33 37.07 73.3 37.4 73.29 37.57L72.45 37.57C72.46 37.42 72.48 37.21 72.48 37.02C72.48 36.34 72.22 36.02 71.67 36.02C70.97 36.02 70.53 36.61 70.53 37.58L70.53 39.36L69.61 39.36L69.61 35.29"/><path d="M76.45 40.97L76.45 40.25C76.57 40.28 76.76 40.33 76.96 40.33C77.39 40.33 77.59 40.12 77.89 39.36L77.67 39.36L75.91 35.29L76.97 35.29L78.27 38.43L78.28 38.43L79.43 35.29L80.33 35.29L78.78 39.44C78.33 40.66 77.94 41.08 77.13 41.08C76.82 41.08 76.57 41.02 76.45 40.97"/><path d="M83.98 37.33C83.98 36.5 83.52 35.98 82.77 35.98C82.02 35.98 81.57 36.5 81.57 37.33C81.57 38.16 82.02 38.67 82.77 38.67C83.52 38.67 83.98 38.16 83.98 37.33M80.64 37.33C80.64 36.03 81.48 35.22 82.77 35.22C84.07 35.22 84.9 36.03 84.9 37.33C84.9 38.63 84.07 39.43 82.77 39.43C81.48 39.43 80.64 38.63 80.64 37.33"/><path d="M85.72 37.76L85.72 35.29L86.64 35.29L86.64 37.63C86.64 38.27 87.04 38.64 87.7 38.64C88.53 38.64 89.04 38.08 89.04 37.1L89.04 35.29L89.97 35.29L89.97 39.36L89.04 39.36C89.07 39.09 89.09 38.65 89.09 38.22L89.08 38.22C88.91 39 88.34 39.43 87.43 39.43C86.37 39.43 85.72 38.84 85.72 37.76"/></svg></span>
+    </div>
+  </section>
+  </div>
+  <canvas class="snow" id="snow" aria-hidden="true"></canvas>
+  <header>
+    <span class="logo" aria-label="Blom"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 89.97 126.81" fill="currentColor"><path d="M83.96 51.3L42.17 36.55L67.09 27.75C70.69 26.48 73.1 23.08 73.1 19.27L73.1 0L0 0L0 89.97L89.97 89.97L89.97 59.78C89.97 55.97 87.56 52.57 83.96 51.3"/><path d="M14.96 116.41C14.96 113.56 13.32 111.7 10.84 111.7C8.36 111.7 6.71 113.56 6.71 116.41C6.71 119.25 8.36 121.11 10.84 121.11C13.32 121.11 14.96 119.25 14.96 116.41M21.75 116.41C21.75 122.87 17.8 126.81 12.01 126.81C9.74 126.81 7.77 126 6.71 124.73L6.71 126.51L0 126.51L0 101.21L6.71 101.21L6.71 107.87C7.81 106.88 9.49 106.01 12.11 106.01C17.8 106.01 21.75 109.95 21.75 116.41"/><path d="M24.08 101.21h6.71v25.3h-6.71z"/><path d="M48.52 116.41C48.52 113.56 46.88 111.7 44.4 111.7C41.92 111.7 40.28 113.56 40.28 116.41C40.28 119.25 41.92 121.11 44.4 121.11C46.88 121.11 48.52 119.25 48.52 116.41M33.49 116.41C33.49 110.32 38.05 106.01 44.4 106.01C50.75 106.01 55.31 110.32 55.31 116.41C55.31 122.5 50.75 126.81 44.4 126.81C38.05 126.81 33.49 122.5 33.49 116.41"/><path d="M89.97 113.42L89.97 126.51L83.29 126.51L83.29 115.24C83.29 113.23 82.19 111.92 80.55 111.92C78.44 111.92 77.34 113.93 77.34 117.69L77.34 126.51L70.63 126.51L70.63 115.24C70.63 113.23 69.57 111.92 67.93 111.92C65.81 111.92 64.68 113.93 64.68 117.69L64.68 126.51L58 126.51L58 106.3L64.68 106.3L64.68 108.24C65.45 107.21 67.53 106.01 70.23 106.01C72.89 106.01 75.12 107.18 76.17 108.75C78.18 106.7 80.59 106.01 82.89 106.01C87.16 106.01 89.97 108.97 89.97 113.42"/></svg></span>
+    <button class="skip" id="skip" type="button">Sla over</button>
+  </header>
+  <p class="note">Voorbeeldweergave: de video volgt</p>
+</main>
+
+<script>
+{
+  const DEMO_SECONDS = 9;            // alleen zolang de video ontbreekt
+  const stage = document.getElementById('stage');
+  const v = document.getElementById('v');
+  const bar = document.getElementById('bar');
+  const sound = document.getElementById('sound');
+  let demo = false, demoTimer = null, demoStart = 0, raf = null;
+  /* ondertiteling: tijden in seconden, gelijk aan de huidige video. Bij een nieuwe video alleen deze lijst aanpassen. */
+  const CUES = [
+    [0.0, 2.3, 'Ho ho ho! Ik ben het echt:'],
+    [2.3, 3.8, 'de kerstman!'],
+    [3.8, 6.2, 'Roze pruik, rood pak in de was.'],
+    [6.2, 8.1, 'Ook ik vier gewoon kerst!'],
+    [8.1, 9.4, 'Lekker dineren.'],
+    [9.4, 12.1, 'En kijk eens rond: prachtig interieur.'],
+    [12.1, 14.1, 'Typisch Blom!']
+  ];
+  /* volledige tekst voor de definitieve video:
+     Ho ho ho! Ik ben het echt: de kerstman. Roze pruik, rood pak in de was. Ook ik vier gewoon kerst! Lekker dineren.
+     En kijk eens rond: prachtig interieur. Typisch Blom! Ik zit hier beter dan op mijn slee. Namens alle medewerkers van Blom:
+     fijne feestdagen en een gezond nieuwjaar. Proost! Wil jij volgend jaar ook zo warmpjes zitten? Bel Blom even. Hun nummer heb je al. */
+  const subs = document.getElementById('subs');
+  let lastCue = -1;
+  const showSub = () => {
+    const tNow = v.currentTime, i = CUES.findIndex(c => tNow >= c[0] && tNow < c[1]);
+    if (i === lastCue) return;
+    lastCue = i; subs.textContent = '';
+    if (i > -1) { const s = document.createElement('span'); s.textContent = CUES[i][2]; subs.appendChild(s); }
+  };
+
+  const end = () => {
+    stage.classList.add('ended');
+    bar.style.width = '100%';
+    clearTimeout(demoTimer);
+  };
+  const tick = () => {
+    const p = demo ? (performance.now() - demoStart) / (DEMO_SECONDS * 1000) : (v.duration ? v.currentTime / v.duration : 0);
+    bar.style.width = Math.min(100, p * 100) + '%';
+    if (!demo) showSub();
+    if (!stage.classList.contains('ended')) raf = requestAnimationFrame(tick);
+  };
+  const startDemo = () => { demo = true; stage.classList.add('demo'); };
+  const restart = (withSound) => {
+    stage.classList.remove('ended');
+    lastCue = -1;
+    if (demo) {
+      const img = stage.querySelector('.poster'); img.style.animation = 'none'; void img.offsetWidth; img.style.animation = '';
+      demoStart = performance.now(); clearTimeout(demoTimer); demoTimer = setTimeout(end, DEMO_SECONDS * 1000);
+    } else {
+      v.currentTime = 0;
+      if (withSound) v.muted = false;
+      v.play().then(() => { if (!v.muted) { sound.hidden = true; stage.classList.add('unmuted'); } })
+        .catch(() => { v.muted = true; sound.hidden = false; stage.classList.remove('unmuted'); v.play().catch(() => {}); });
+    }
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
+  };
+
+  v.addEventListener('ended', end);
+  v.addEventListener('error', startDemo, true);
+  v.querySelector('source').addEventListener('error', startDemo);
+
+  /* openingsscherm: de tik geeft de browser toestemming voor geluid (en op Android voor fullscreen) */
+  const goFull = () => {
+    const el = document.documentElement;
+    if (el.requestFullscreen && !/iPhone|iPad|iPod/.test(navigator.userAgent) && matchMedia('(max-aspect-ratio: 1/1)').matches)
+      el.requestFullscreen().catch(() => {});
+  };
+  document.getElementById('open').addEventListener('click', () => {
+    stage.classList.add('started');
+    restart(true);   /* eerst afspelen met geluid, dan pas fullscreen: fullscreen verbruikt de toestemming van de tik */
+    goFull();
+  });
+  sound.addEventListener('click', () => { restart(true); goFull(); });
+  document.getElementById('skip').addEventListener('click', () => { v.pause(); end(); });
+  document.getElementById('again').addEventListener('click', () => restart(true));
+
+  /* zachte sneeuw */
+  const c = document.getElementById('snow'), x = c.getContext('2d');
+  let flakes = [], W = 0, H = 0;
+  const size = () => {
+    const d = Math.min(2, window.devicePixelRatio || 1);
+    W = c.clientWidth; H = c.clientHeight; c.width = W * d; c.height = H * d; x.setTransform(d, 0, 0, d, 0, 0);
+    flakes = Array.from({length: Math.round(W * H / 9000)}, () => ({x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.8 + .6, s: Math.random() * .5 + .25, w: Math.random() * 6.28}));
+  };
+  const ro = new ResizeObserver(size); ro.observe(c);
+  const snow = () => {
+    x.clearRect(0, 0, W, H); x.fillStyle = 'rgba(255,255,255,.75)';
+    for (const f of flakes) {
+      f.y += f.s; f.w += .01; f.x += Math.sin(f.w) * .3;
+      if (f.y > H + 4) { f.y = -4; f.x = Math.random() * W; }
+      x.beginPath(); x.arc(f.x, f.y, f.r, 0, 6.283); x.fill();
+    }
+    requestAnimationFrame(snow);
+  };
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(snow);
+}
+</script>
+</body>
+</html>
